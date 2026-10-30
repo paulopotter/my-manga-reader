@@ -119,6 +119,13 @@ describe('ReaderScreen V2 — loading / error', () => {
     expect(mockLoadChapter).toHaveBeenCalledWith('c1');
   });
 
+  it('offers "Voltar" on the error state and realizes the hook\'s backAction', () => {
+    mockReaderState = { ...mockReaderState, loading: false, error: 'boom' };
+    const { getByText } = render(<ReaderScreen />);
+    fireEvent.press(getByText('Voltar'));
+    expect(mockRealize).toHaveBeenCalledWith(mockReaderState.backAction);
+  });
+
   it('fires onScreenExit on unmount', () => {
     const { unmount } = render(<ReaderScreen />);
     unmount();

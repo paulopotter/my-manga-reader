@@ -24,7 +24,7 @@ import { readerStyles } from './reader.styles';
 import { useTheme, useStyles } from '../../shared/context';
 import { icon } from '../../shared/theme';
 import { ReaderPrefs, type ProgressBarPosition } from '../../shared/tools/reader';
-import { IconButton } from '../../shared/components/icon-button';
+import { STATUS_BAR_GAP, statusBarHeight } from './components/reader-top-bar/reader-top-bar.styles';
 import { ThinProgressBar } from '../../shared/components/thin-progress-bar';
 
 type RouteParams = {
@@ -114,19 +114,18 @@ export function ReaderScreen() {
     if (reader.error) {
       return (
         <View style={styles.centered}>
+          <Pressable
+            style={[styles.errorBack, { paddingTop: statusBarHeight + STATUS_BAR_GAP }]}
+            onPress={handleBack}
+            accessibilityRole="button"
+            accessibilityLabel={t.commonBackLabel}>
+            <ArrowLeft size={icon.size[4]} color={colors.icon.primary} />
+            <Text style={styles.errorBackText}>{t.commonBackLabel}</Text>
+          </Pressable>
           <Text style={styles.errorText}>{t.readerError}</Text>
           <Pressable style={styles.button} onPress={() => reader.loadChapter(chapterId)}>
             <Text style={styles.buttonText}>{t.readerRetry}</Text>
           </Pressable>
-          <IconButton
-            icon={ArrowLeft}
-            glyph="arrow"
-            size={icon.size[4]}
-            color={colors.icon.primary}
-            onPress={handleBack}
-            accessibilityLabel={t.commonBackLabel}
-            style={styles.buttonSecondary}
-          />
         </View>
       );
     }

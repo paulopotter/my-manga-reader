@@ -21,5 +21,6 @@ export const bookReaderStyles = createStyles(({ colors, text, spacing, radius })
     paddingHorizontal: spacing[8],
     borderRadius: radius.medium,
   },
-  buttonText: { color: colors.text.button.primary, fontSize: text.size[3] },
+  // Named after the fill it sits on (`button.secondary`), not after the primary one.
+  buttonText: { color: colors.text.button.secondary, fontSize: text.size[3] },
 }));

@@ -132,6 +132,13 @@ describe('legibility', () => {
     expect(contrast(palette.text.secondary, palette.surface.tertiary)).toBeGreaterThanOrEqual(4.5);
   });
 
+  // The reader's error screen sits a secondary button on the black page. Its label is
+  // `text.button.secondary`, which is the one named after that fill — the primary label on it read
+  // 1.1–1.5:1 in six of the eight identities.
+  it.each(named)('%s reads the label of a secondary button', (_name, palette) => {
+    expect(contrast(palette.text.button.secondary, palette.button.secondary)).toBeGreaterThanOrEqual(7);
+  });
+
   it.each(named)('%s reads its heading and its label', (_name, palette) => {
     expect(contrast(palette.text.title.primary, palette.surface.secondary)).toBeGreaterThanOrEqual(7);
     expect(contrast(palette.text.label, palette.surface.secondary)).toBeGreaterThanOrEqual(7);
