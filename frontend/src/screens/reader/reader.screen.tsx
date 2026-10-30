@@ -18,7 +18,7 @@ import {
   type ReaderChapterBlock,
 } from './components';
 import { useReader } from './hooks';
-import { progressBarFraction } from './reader.model';
+import { chapterPosition, progressBarFraction } from './reader.model';
 import { windowToWebtoonBlocks } from './modes/webtoon.adapter';
 import { readerStyles } from './reader.styles';
 import { useTheme, useStyles } from '../../shared/context';
@@ -144,11 +144,11 @@ export function ReaderScreen() {
   const scrollToChapterId = reader.scrollRequest?.chapterId ?? null;
   const scrollToPageIndex = reader.scrollRequest?.page ?? -1;
 
-  // 1-indexed for display — undefined for a single-page (or not-yet-loaded) chapter, where a
-  // "1 de 1" indicator says nothing the user doesn't already see.
-  const pageIndicatorText =
-    curr.pageUrls.length > 1
-      ? t.readerPageIndicator.replace('{0}', String(reader.currentVisiblePage + 1)).replace('{1}', String(curr.pageUrls.length))
+  // Which chapter of the series this is — undefined until the series order is in.
+  const position = chapterPosition(reader.order, curr.id);
+  const chapterIndicatorText =
+    position != null
+      ? t.readerChapterIndicator.replace('{0}', String(position.position)).replace('{1}', String(position.total))
       : undefined;
 
   // [Reader v2][diag] Task 029/030/031 debug — descomente ao investigar troca de capítulo.
@@ -197,7 +197,7 @@ export function ReaderScreen() {
       <ReaderTopBar
         seriesName={reader.seriesName}
         chapterTitle={ChapterTool.format.title(curr, t)}
-        pageIndicatorText={pageIndicatorText}
+        pageIndicatorText={chapterIndicatorText}
         onBack={handleBack}
         backLabel={t.commonBackLabel}
         onSeriesPress={openSeries}

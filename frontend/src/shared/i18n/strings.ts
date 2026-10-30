@@ -347,8 +347,9 @@ export interface Strings {
   readerNextChapterLabel: string;
   readerNoNextChapter: string;
   readerNoPrevChapter: string;
-  // "{0} de {1}" — current page / total pages, shown in the top bar.
-  readerPageIndicator: string;
+  // "Cap. {0} de {1}" — position of the open chapter in the series / chapters in the series, shown
+  // in the top bar.
+  readerChapterIndicator: string;
   readerChapterPickerButtonLabel: string;
   readerChapterPickerTitle: string;
   readerSettingsButtonLabel: string;
@@ -799,7 +800,7 @@ const ptBR: Strings = {
   readerNextChapterLabel: 'Próximo:',
   readerNoNextChapter: 'Não há próximo capítulo',
   readerNoPrevChapter: 'Não há capítulo anterior',
-  readerPageIndicator: '{0} de {1}',
+  readerChapterIndicator: 'Cap. {0} de {1}',
   readerChapterPickerButtonLabel: 'Selecionar capítulo',
   readerChapterPickerTitle: 'Capítulos',
   readerSettingsButtonLabel: 'Ajustes de leitura',
@@ -1235,7 +1236,7 @@ const en: Strings = {
   readerNextChapterLabel: 'Next:',
   readerNoNextChapter: 'No next chapter',
   readerNoPrevChapter: 'No previous chapter',
-  readerPageIndicator: '{0} of {1}',
+  readerChapterIndicator: 'Ch. {0} of {1}',
   readerChapterPickerButtonLabel: 'Select chapter',
   readerChapterPickerTitle: 'Chapters',
   readerSettingsButtonLabel: 'Reading settings',

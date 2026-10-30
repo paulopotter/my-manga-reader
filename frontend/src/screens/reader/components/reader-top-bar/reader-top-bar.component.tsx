@@ -9,8 +9,8 @@ import { IconButton } from '../../../../shared/components/icon-button';
 interface Props {
   seriesName: string;
   chapterTitle: string;
-  // 1-indexed for display (currentPage is 0-indexed internally) — undefined pageIndicatorText
-  // means the caller decided there's nothing worth showing (e.g. a chapter with 0/1 pages).
+  // Ready-made progress text shown beside the series name (the reader passes "Cap. 2 de 40") —
+  // undefined means the caller has nothing true to show yet.
   pageIndicatorText?: string;
   onBack: () => void;
   backLabel: string;

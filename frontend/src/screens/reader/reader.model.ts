@@ -134,6 +134,17 @@ export function shouldUnmarkOnReread(
 // reader keeps importing them from its own model.
 export { toOrderedChapters, neighborsOfIn, adjacentChapterId } from '../../shared/tools/chapters/chapters-order.tool';
 
+// Where the chapter sits in the series, 1-indexed for display — null while the order isn't loaded or
+// doesn't hold the chapter, where a "1 de 1" would say nothing true. Position, not `chapter.number`:
+// a series with specials or gaps in its numbering still counts 1..N.
+export function chapterPosition(
+  order: OrderedChapter[],
+  chapterId: string,
+): { position: number; total: number } | null {
+  const index = order.findIndex(c => c.id === chapterId);
+  return index === -1 ? null : { position: index + 1, total: order.length };
+}
+
 // ── progress bar ────────────────────────────────────────────────────────
 
 export function progressBarFraction(chapterFraction: number): number {

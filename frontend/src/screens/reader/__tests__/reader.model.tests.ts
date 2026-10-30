@@ -7,6 +7,7 @@ import type { OrderedChapter, ReaderChapter } from '../reader.types';
 import {
   adjacentChapterId,
   chapterFromDigest,
+  chapterPosition,
   isChapterEffectivelyRead,
   neighborsOfIn,
   progressBarFraction,
@@ -278,5 +279,19 @@ describe('adjacentChapterId', () => {
   it('returns null for an unknown chapter or empty order', () => {
     expect(adjacentChapterId(o, 'zzz', 'next')).toBeNull();
     expect(adjacentChapterId([], 'c1', 'next')).toBeNull();
+  });
+});
+
+describe('chapterPosition', () => {
+  const o = order(['c1', 'c2', 'c3']);
+
+  it('is 1-indexed over the whole series', () => {
+    expect(chapterPosition(o, 'c1')).toEqual({ position: 1, total: 3 });
+    expect(chapterPosition(o, 'c3')).toEqual({ position: 3, total: 3 });
+  });
+
+  it('is null when the order is empty or does not hold the chapter', () => {
+    expect(chapterPosition([], 'c1')).toBeNull();
+    expect(chapterPosition(o, 'zzz')).toBeNull();
   });
 });

@@ -232,20 +232,32 @@ describe('ReaderScreen V2 — back button', () => {
   });
 });
 
-describe('ReaderScreen V2 — page indicator', () => {
-  it('shows "current de total" (1-indexed) for a multi-page chapter', () => {
-    withWindow([entry({ id: 'c1', pageUrls: ['u0', 'u1', 'u2'] })], 0);
+describe('ReaderScreen V2 — chapter indicator', () => {
+  const orderOf = (ids: string[]) => ids.map(id => ({ id, seriesId: 's1', title: id, readStatus: 'UNREAD' }));
+
+  it('shows the chapter\'s position in the series, not the page', () => {
+    withWindow([entry({ id: 'c2', pageUrls: ['u0', 'u1', 'u2'] })], 0);
     mockReaderState.overlayVisible = true;
     mockReaderState.currentVisiblePage = 1;
+    mockReaderState.order = orderOf(['c1', 'c2', 'c3']);
     const { getByText } = render(<ReaderScreen />);
-    expect(getByText('2 de 3')).toBeTruthy();
+    expect(getByText('Cap. 2 de 3')).toBeTruthy();
   });
 
-  it('shows no page indicator for a single-page chapter', () => {
-    withWindow([entry({ id: 'c1', pageUrls: ['u0'] })], 0);
+  it('shows no indicator while the series order is not in yet', () => {
+    withWindow([entry({ id: 'c1' })], 0);
     mockReaderState.overlayVisible = true;
+    mockReaderState.order = [];
     const { queryByText } = render(<ReaderScreen />);
-    expect(queryByText(/^\d+ de \d+$/)).toBeNull();
+    expect(queryByText(/^Cap\. \d+ de \d+$/)).toBeNull();
+  });
+
+  it('shows no indicator when the order does not hold the open chapter', () => {
+    withWindow([entry({ id: 'c9' })], 0);
+    mockReaderState.overlayVisible = true;
+    mockReaderState.order = orderOf(['c1', 'c2']);
+    const { queryByText } = render(<ReaderScreen />);
+    expect(queryByText(/^Cap\. \d+ de \d+$/)).toBeNull();
   });
 });
 
