@@ -1,12 +1,19 @@
+import { StyleSheet } from 'react-native';
 import { createStyles } from '../../../../shared/theme';
 export const ARROW_BUTTON_SIZE = 32;
 export const DOT_SIZE = 6;
 // Minimum gap between dots = half the dot size. The dots container always spans arrow to arrow
-// (flex:1); dots distribute via space-evenly. Many pages -> content grows, ScrollView-style
-// overflow keeps the minimum gap instead of squeezing dots below legible.
+// (flex:1); dots distribute via space-evenly. When the pages no longer fit at that gap the bar
+// stops drawing one dot per page and becomes a scrubber (see the component).
 export const DOT_GAP = DOT_SIZE / 2;
+export const DOTS_WIDTH = 28;
+// The scrubber's own parts: a thin track, and a thumb wide enough to grab.
+export const TRACK_WIDTH = 4;
+export const THUMB_SIZE = 14;
+// The bubble is about one text line tall; centring it on the thumb only needs half of that.
+export const BUBBLE_HALF_HEIGHT = 16;
 
-export const readerSideProgressBarStyles = createStyles(({ colors, spacing, radius, alpha }) => ({
+export const readerSideProgressBarStyles = createStyles(({ colors, spacing, radius, alpha, text }) => ({
     root: {
       position: 'absolute',
       right: 8,
@@ -29,7 +36,7 @@ export const readerSideProgressBarStyles = createStyles(({ colors, spacing, radi
       alignItems: 'center',
       paddingVertical: DOT_GAP,
       marginVertical: spacing[2],
-      width: 28,
+      width: DOTS_WIDTH,
       borderRadius: radius.full,
       backgroundColor: alpha(colors.surface.dim, 0.72),
     },
@@ -39,5 +46,40 @@ export const readerSideProgressBarStyles = createStyles(({ colors, spacing, radi
     // the active page without competing with its highlight.
     dotRead: { backgroundColor: alpha(colors.progress.reading.primary, 0.5) },
     dotActive: { backgroundColor: colors.progress.reading.primary, width: 8, height: 8, borderRadius: radius.small },
+    // Scrubber: the track runs the pill's whole inner height, filled up to the thumb with the same
+    // gold the read dots use, so "how far through" reads the same in either shape.
+    track: {
+      position: 'absolute',
+      left: (DOTS_WIDTH - TRACK_WIDTH) / 2,
+      width: TRACK_WIDTH,
+      borderRadius: TRACK_WIDTH / 2,
+      backgroundColor: colors.progress.reading.secondary,
+    },
+    trackFill: {
+      position: 'absolute',
+      left: (DOTS_WIDTH - TRACK_WIDTH) / 2,
+      width: TRACK_WIDTH,
+      borderRadius: TRACK_WIDTH / 2,
+      backgroundColor: alpha(colors.progress.reading.primary, 0.5),
+    },
+    thumb: {
+      position: 'absolute',
+      left: (DOTS_WIDTH - THUMB_SIZE) / 2,
+      width: THUMB_SIZE,
+      height: THUMB_SIZE,
+      borderRadius: THUMB_SIZE / 2,
+      backgroundColor: colors.progress.reading.primary,
+    },
+    // The touch surface laid over the pill: nothing inside it, so a touch's locationY is relative to it.
+    scrubberSurface: { ...StyleSheet.absoluteFillObject },
+    // Shown beside the thumb only while it is being dragged: the page the finger is on.
+    bubble: {
+      position: 'absolute',
+      right: DOTS_WIDTH + spacing[3],
+      paddingVertical: spacing[2],
+      paddingHorizontal: spacing[4],
+      borderRadius: radius.medium,
+      backgroundColor: alpha(colors.surface.dim, 0.85),
+    },
+    bubbleText: { color: colors.text.primary, fontSize: text.size[3], fontWeight: text.weight.bold },
 }));
-
