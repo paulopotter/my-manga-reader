@@ -522,6 +522,31 @@ export function useReader(seriesId: string, chapterId: string, seriesNameHint?: 
     };
   }, [seriesId]);
 
+  // The order above is the light digest's chapter list, served cache-first — and that variant has no
+  // staleness guard of its own (the series screen's variant does). A chapter that arrived after it was
+  // cached (a push notification's) is therefore missing from it, or is its last entry with newer ones
+  // unseen: setas, bolinhas and the infinite scroll all read "no next chapter" and the reader stops at
+  // the end of the chapter. When the focused chapter is either of those, ask the server once, with
+  // force, which rewrites the entry. Once per open: a series that really ends here costs one fetch.
+  const forcedOrderRefreshRef = useRef(false);
+  useEffect(() => {
+    if (orderTick === 0 || forcedOrderRefreshRef.current) {return;}
+    const window = state.window;
+    const focusedId = window?.entries[window.focusedIndex]?.chapter.id;
+    if (!focusedId) {return;}
+    const order = orderRef.current;
+    const index = order.findIndex(c => c.id === focusedId);
+    if (index !== -1 && index < order.length - 1) {return;}
+    forcedOrderRefreshRef.current = true;
+    SerialService.get({ seriesId, force: true })
+      .then(digest => {
+        if (!digest.isSuccess) {return;}
+        orderRef.current = toOrderedChapters(digest);
+        setOrderTick(t => t + 1);
+      })
+      .catch(() => {});
+  }, [orderTick, state.window, seriesId]);
+
   // Reconcile the window once BOTH the series order and the window exist (either can land first):
   // re-apply each entry's series-order `number` and grow both ends so the focused chapter has a
   // neighbour on each side — this is where the prev chapter enters on a cold open (the bare

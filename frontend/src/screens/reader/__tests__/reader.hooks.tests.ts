@@ -490,3 +490,78 @@ describe('useReader V2 — progress flush (Task 030 gaps)', () => {
     expect(mockProgressSet).not.toHaveBeenCalled(); // server skipped for a read chapter
   });
 });
+
+describe('useReader V2 — stale series order', () => {
+  const forcedCalls = () => mockSerialGet.mock.calls.filter(([args]) => args?.force === true);
+
+  it('refreshes the order with force when the opened chapter is not in it (a chapter that just arrived)', async () => {
+    mockSerialGet.mockImplementation(({ force }: { force?: boolean }) =>
+      Promise.resolve(force ? seriesDigest(['c1', 'c2', 'c3', 'c4', 'c5', 'c6']) : seriesDigest(['c1', 'c2', 'c3', 'c4', 'c5'])),
+    );
+    mockGetFull.mockResolvedValue(chapterDigest('c6', 6, { prev: 'c5' }));
+    const { result } = renderHook(() => useReader('s1', 'c6', 'Minha Série'));
+    await waitFor(() => expect(result.current.window).not.toBeNull());
+
+    await waitFor(() => expect(result.current.order.map(c => c.id)).toContain('c6'));
+    expect(forcedCalls()).toHaveLength(1);
+    expect(result.current.hasPrevChapter).toBe(true);
+  });
+
+  it('finds the chapters after the cached last one when the opened chapter was that last entry', async () => {
+    mockSerialGet.mockImplementation(({ force }: { force?: boolean }) =>
+      Promise.resolve(force ? seriesDigest(['c1', 'c2', 'c3', 'c4', 'c5', 'c6']) : seriesDigest(['c1', 'c2', 'c3', 'c4', 'c5'])),
+    );
+    mockGetFull.mockResolvedValue(chapterDigest('c5', 5, { prev: 'c4' }));
+    const { result } = renderHook(() => useReader('s1', 'c5', 'Minha Série'));
+    await waitFor(() => expect(result.current.window).not.toBeNull());
+
+    await waitFor(() => expect(result.current.hasNextChapter).toBe(true));
+    expect(forcedCalls()).toHaveLength(1);
+  });
+
+  it('does not force when the opened chapter has a next one in the order', async () => {
+    mockGetFull.mockResolvedValue(chapterDigest('c3', 3, { prev: 'c2', next: 'c4' }));
+    const { result } = renderHook(() => useReader('s1', 'c3', 'Minha Série'));
+    await waitFor(() => expect(result.current.window).not.toBeNull());
+    await waitFor(() => expect(result.current.hasNextChapter).toBe(true));
+
+    expect(forcedCalls()).toHaveLength(0);
+  });
+
+  it('forces only once per open, even when the forced order still ends at the focused chapter', async () => {
+    mockGetFull.mockResolvedValue(chapterDigest('c5', 5, { prev: 'c4' }));
+    const { result } = renderHook(() => useReader('s1', 'c5', 'Minha Série'));
+    await waitFor(() => expect(result.current.window).not.toBeNull());
+    await waitFor(() => expect(forcedCalls()).toHaveLength(1));
+    await act(async () => {});
+
+    expect(forcedCalls()).toHaveLength(1);
+    expect(result.current.hasNextChapter).toBe(false);
+  });
+
+  it('keeps the cached order when the forced refresh fails', async () => {
+    mockSerialGet.mockImplementation(({ force }: { force?: boolean }) =>
+      force ? Promise.reject(new Error('offline')) : Promise.resolve(seriesDigest(['c1', 'c2', 'c3', 'c4', 'c5'])),
+    );
+    mockGetFull.mockResolvedValue(chapterDigest('c5', 5, { prev: 'c4' }));
+    const { result } = renderHook(() => useReader('s1', 'c5', 'Minha Série'));
+    await waitFor(() => expect(result.current.window).not.toBeNull());
+    await waitFor(() => expect(forcedCalls()).toHaveLength(1));
+    await act(async () => {});
+
+    expect(result.current.order).toHaveLength(5);
+  });
+
+  it('ignores a forced refresh that comes back as a failure digest', async () => {
+    mockSerialGet.mockImplementation(({ force }: { force?: boolean }) =>
+      Promise.resolve(force ? { isSuccess: false, error: { message: 'x' } } : seriesDigest(['c1', 'c2', 'c3', 'c4', 'c5'])),
+    );
+    mockGetFull.mockResolvedValue(chapterDigest('c5', 5, { prev: 'c4' }));
+    const { result } = renderHook(() => useReader('s1', 'c5', 'Minha Série'));
+    await waitFor(() => expect(result.current.window).not.toBeNull());
+    await waitFor(() => expect(forcedCalls()).toHaveLength(1));
+    await act(async () => {});
+
+    expect(result.current.order).toHaveLength(5);
+  });
+});
