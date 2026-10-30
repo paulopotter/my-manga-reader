@@ -3,7 +3,11 @@ package com.mymangareader.features.kavita.reader.ui
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
@@ -241,8 +245,22 @@ class ReaderPageListTest {
         }
 
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("Falha ao carregar página (-1)").assertExists()
-        composeRule.onNodeWithText("Tentar novamente").assertExists()
+        // onFirst: the test viewport is small enough for this default-shaped page to count as tall,
+        // which repeats the message and the retry — covered on its own below.
+        composeRule.onAllNodesWithText("Falha ao carregar página (-1)").onFirst().assertExists()
+        composeRule.onAllNodesWithText("Tentar novamente").onFirst().assertExists()
+    }
+
+    @Test
+    fun `a failed page far taller than the viewport repeats its retry button`() {
+        composeRule.setContent {
+            ReaderPageList(
+                blocks = listOf(block("c1", "Capítulo 1", listOf("not-a-valid-url"), pageAspectRatios = listOf(20f))),
+            )
+        }
+
+        composeRule.waitForIdle()
+        composeRule.onAllNodesWithText("Tentar novamente").assertCountEquals(3)
     }
 
     @Test
@@ -315,6 +333,26 @@ class ReaderPageListTest {
     fun `errorCodeOrNull gives nothing for a network failure, so the message keeps its wording`() {
         // A timeout or a reset is transient: retrying IS the answer, and a code adds nothing.
         assertTrue(errorCodeOrNull(java.io.IOException("timeout")) == null)
+    }
+
+    @Test
+    fun `retryAlignments puts a retry at the top, middle and bottom of a failed page taller than the viewport`() {
+        assertTrue(
+            retryAlignments(placeholderHeightPx = 6_000, viewportHeightPx = 2_000) ==
+                listOf(Alignment.TopCenter, Alignment.Center, Alignment.BottomCenter),
+        )
+    }
+
+    @Test
+    fun `retryAlignments keeps the single centred retry for a page that fits the viewport`() {
+        assertTrue(retryAlignments(placeholderHeightPx = 1_800, viewportHeightPx = 2_000) == listOf(Alignment.Center))
+        // exactly as tall as the viewport: the whole page is on screen, so one control is enough
+        assertTrue(retryAlignments(placeholderHeightPx = 2_000, viewportHeightPx = 2_000) == listOf(Alignment.Center))
+    }
+
+    @Test
+    fun `retryAlignments keeps the single centred retry while the viewport is still unknown`() {
+        assertTrue(retryAlignments(placeholderHeightPx = 6_000, viewportHeightPx = 0) == listOf(Alignment.Center))
     }
 
     @Test

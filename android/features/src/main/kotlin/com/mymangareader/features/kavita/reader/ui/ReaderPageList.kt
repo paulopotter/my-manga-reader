@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -944,6 +945,7 @@ fun ReaderPageList(
                                     aspectRatio = entry.aspectRatio,
                                     loadingNode = pageLoadingNode,
                                     errorNode = pageErrorNode,
+                                    viewportHeightPx = containerHeightPx,
                                 )
                         }
                     }
@@ -973,6 +975,9 @@ internal fun ReaderPageImage(
     aspectRatio: Float = 0f,
     loadingNode: SduNode? = null,
     errorNode: SduNode? = null,
+    // The list's own height: a failed page taller than this repeats its retry control (see
+    // [retryAlignments]). 0 (unknown, or a page shown on its own) keeps the single centred one.
+    viewportHeightPx: Int = 0,
 ) {
     // Bumped by the retry button below. Included as a request parameter so Coil treats each
     // retry as a distinct cache key — otherwise a request that failed (e.g. a transient WebP
@@ -1016,7 +1021,7 @@ internal fun ReaderPageImage(
                 }
             is AsyncImagePainter.State.Error -> {
                 val error = painter.state as AsyncImagePainter.State.Error
-                ReaderPagePlaceholder(aspectRatio) {
+                ReaderPagePlaceholder(aspectRatio, viewportHeightPx = viewportHeightPx, repeatWhenTall = true) {
                     if (errorNode != null) {
                         // A network failure carries no code — the message keeps its plain wording,
                         // and any {code} the node declares is left for the decode case below.
@@ -1084,15 +1089,38 @@ internal fun RetryButton(onClick: () -> Unit) {
 // different heights for the same page) was throwing off computeChapterFraction's chapter-total
 // height, making the progress bar hit 100% before the last page had actually finished scrolling
 // past — since Coil's default placeholder aspect ratio (2:3) has no relation to the actual page.
+/**
+ * Where a failed page puts its message + retry. A webtoon page can be several screens tall, and a
+ * single control in its middle means scrolling through a black stretch to find it — so a page taller
+ * than the viewport carries one at the top, the middle and the bottom, and whichever part of the page
+ * is on screen has one. A page that fits the viewport keeps the one in the middle.
+ */
+internal fun retryAlignments(
+    placeholderHeightPx: Int,
+    viewportHeightPx: Int,
+): List<Alignment> =
+    if (viewportHeightPx > 0 && placeholderHeightPx > viewportHeightPx) {
+        listOf(Alignment.TopCenter, Alignment.Center, Alignment.BottomCenter)
+    } else {
+        listOf(Alignment.Center)
+    }
+
 @Composable
 private fun ReaderPagePlaceholder(
     aspectRatio: Float = 0f,
+    viewportHeightPx: Int = 0,
+    repeatWhenTall: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    Box(
+    BoxWithConstraints(
         modifier = Modifier.fillMaxWidth().aspectRatio(if (aspectRatio > 0f) 1f / aspectRatio else 2f / 3f),
         contentAlignment = Alignment.Center,
     ) {
-        content()
+        val alignments =
+            if (repeatWhenTall) retryAlignments(constraints.maxHeight, viewportHeightPx) else listOf(Alignment.Center)
+        alignments.forEach { alignment ->
+            // The edge ones keep clear of the page's own edge, so they don't sit against the chapter band.
+            Box(modifier = Modifier.align(alignment).padding(vertical = 32.dp)) { content() }
+        }
     }
 }
