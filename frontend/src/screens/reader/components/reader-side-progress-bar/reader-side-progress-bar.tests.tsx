@@ -1,7 +1,8 @@
 import React from 'react';
-import { PanResponder } from 'react-native';
+import { PanResponder, StyleSheet } from 'react-native';
 import { act, fireEvent, render } from '@testing-library/react-native';
 import { ReaderSideProgressBar } from './reader-side-progress-bar.component';
+import { DOTS_WIDTH } from './reader-side-progress-bar.styles';
 import { colors } from '../../../../shared/theme';
 
 function setup(over: Partial<React.ComponentProps<typeof ReaderSideProgressBar>> = {}) {
@@ -108,6 +109,16 @@ describe('ReaderSideProgressBar — a chapter with more pages than dots fit', ()
     const { TouchableOpacity } = require('react-native');
     expect(UNSAFE_getAllByType(TouchableOpacity)).toHaveLength(2); // only the two arrows remain
     expect(getByTestId('reader-side-progress-bar-scrubber')).toBeTruthy();
+  });
+
+  it('keeps the bubble on one line and wider than the pill, so a long count is not broken per character', () => {
+    const { getByText, getByTestId } = setupScrubber();
+
+    act(() => config.onPanResponderGrant?.(touch(10), {} as never));
+
+    expect(getByText('1 / 50').props.numberOfLines).toBe(1);
+    // The bubble sits in a row wider than the pill: an absolute child is only as wide as its parent.
+    expect(StyleSheet.flatten(getByTestId('reader-side-progress-bar-bubble-row').props.style).width).toBeGreaterThan(DOTS_WIDTH);
   });
 
   it('names the page under the finger while dragging, and jumps there on release only', () => {

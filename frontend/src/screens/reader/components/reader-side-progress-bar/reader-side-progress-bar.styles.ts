@@ -12,6 +12,8 @@ export const TRACK_WIDTH = 4;
 export const THUMB_SIZE = 14;
 // The bubble is about one text line tall; centring it on the thumb only needs half of that.
 export const BUBBLE_HALF_HEIGHT = 16;
+// Room for "9999 / 9999" at the bubble's size, with margin.
+export const BUBBLE_ROW_WIDTH = 160;
 
 export const readerSideProgressBarStyles = createStyles(({ colors, spacing, radius, alpha, text }) => ({
     root: {
@@ -72,10 +74,17 @@ export const readerSideProgressBarStyles = createStyles(({ colors, spacing, radi
     },
     // The touch surface laid over the pill: nothing inside it, so a touch's locationY is relative to it.
     scrubberSurface: { ...StyleSheet.absoluteFillObject },
-    // Shown beside the thumb only while it is being dragged: the page the finger is on.
-    bubble: {
+    // Shown beside the thumb only while it is being dragged: the page the finger is on. The pill is
+    // narrower than the text, and an absolute child is only as wide as its parent allows — so the bubble
+    // sits in a wide row that ends at the pill and lets it be as wide as its text, on one line.
+    bubbleRow: {
       position: 'absolute',
       right: DOTS_WIDTH + spacing[3],
+      width: BUBBLE_ROW_WIDTH,
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+    },
+    bubble: {
       paddingVertical: spacing[2],
       paddingHorizontal: spacing[4],
       borderRadius: radius.medium,

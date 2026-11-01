@@ -136,8 +136,13 @@ export function ReaderSideProgressBar({
             />
             <View style={[styles.thumb, { top: thumbTop }]} pointerEvents="none" />
             {dragPage != null && (
-              <View style={[styles.bubble, { top: thumbTop + THUMB_SIZE / 2 - BUBBLE_HALF_HEIGHT }]} pointerEvents="none">
-                <Text style={styles.bubbleText}>{`${dragPage + 1} / ${totalPages}`}</Text>
+              <View
+                testID="reader-side-progress-bar-bubble-row"
+                style={[styles.bubbleRow, { top: thumbTop + THUMB_SIZE / 2 - BUBBLE_HALF_HEIGHT }]}
+                pointerEvents="none">
+                <View style={styles.bubble}>
+                  <Text style={styles.bubbleText} numberOfLines={1}>{`${dragPage + 1} / ${totalPages}`}</Text>
+                </View>
               </View>
             )}
             {/* The touch surface: nothing inside it, so locationY is always relative to the pill. */}
