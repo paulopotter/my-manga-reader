@@ -128,7 +128,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = gitCommitCount
-        versionName = "1.9.0"
+        versionName = "1.10.0"
 
         buildConfigField("String", "OTA_MANIFEST_URL", "\"$otaManifestUrl\"")
         buildConfigField("String", "OTA_OFFICIAL_MANIFEST_URL", "\"$officialOtaManifestUrl\"")

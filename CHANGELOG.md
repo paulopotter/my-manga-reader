@@ -10,17 +10,34 @@ Kotlin and RN bundle versions follow Semantic Versioning independently.
 
 ## [Unreleased]
 
-### Backend
+## [[2026.11.01.1721](https://github.com/paulopotter/my-kavita-app-reader/releases/tag/2026.11.01.1721)] - 2026-11-01
 
-- fix: uma imagem que falhou ao carregar no modo webnovel agora mostra o botão de recarregar no início, no meio e no fim dela quando é mais alta que a tela, em vez de só no meio.
+Agora ficou mais fácil navegar por capítulos longos, o leitor exibe o progresso correto de capítulos e você pode esconder obras da tela inicial. / Now it is easier to navigate through long chapters, the reader displays the correct chapter progress, and you can hide titles from the home screen.
 
-### Frontend
 
-- fix: a tela de erro do leitor, de imagens e de livros, voltou a ser legível em todos os temas, e o "← Voltar" agora fica no topo da tela.
-- fix: um capítulo aberto a partir de uma notificação não trava mais no fim do capítulo; a ordem dos capítulos da obra é buscada de novo quando o capítulo aberto não está nela ou é o último, e a navegação para o anterior e o próximo volta a funcionar.
-- feat: a barra lateral do leitor vira uma barra de arrastar quando as bolinhas não cabem, com uma bolha que mostra a página sob o dedo, para capítulos com muitas páginas continuarem navegáveis.
-- feat: o cabeçalho do leitor mostra o capítulo atual e o total de capítulos da obra, em vez da página atual e do total de páginas.
-- feat: segurar um card de "Continuar lendo" na Home esconde a obra desse trilho e de "Ainda não terminei…" até você ler de novo.
+### **Backend** - `1.10.0`
+
+**[pt-BR]**
+- Imagens muito altas no modo webnovel que falhavam ao carregar agora exibem o botão de recarregar no início, no meio e no fim da imagem.
+
+**[en]**
+- Very tall webnovel images that failed to load now display the reload button at the top, middle, and bottom of the image.
+
+### **Frontend** - `1.11.0`
+
+**[pt-BR]**
+- As telas de erro do leitor, de imagens e de livros voltaram a exibir textos legíveis em todos os temas, com o botão de voltar posicionado no topo.
+- Capítulos abertos por notificações não travam mais no fim, garantindo que a lista de capítulos seja atualizada e a navegação entre eles volte a funcionar.
+- A barra lateral do leitor se transforma em um controle deslizante com prévia flutuante da página sob o dedo quando há muitas páginas.
+- O cabeçalho do leitor passou a exibir o capítulo atual e o total de capítulos da obra em vez das informações de página.
+- Manter pressionado um card na seção de leitura contínua oculta a obra da página inicial até que você volte a ler.
+
+**[en]**
+- The reader, image, and book error screens once again display legible text across all themes, with the back button positioned at the top.
+- Chapters opened via notifications no longer freeze at the end, ensuring the chapter list updates and navigation between them works properly.
+- The reader sidebar transforms into a slider with a floating page preview under your finger when dealing with many pages.
+- The reader header now displays the current chapter and total chapter count of the series instead of page information.
+- Long-pressing a card in the continue reading section hides the title from the home page until you read it again.
 
 ## [[2026.10.26.1331](https://github.com/paulopotter/my-kavita-app-reader/releases/tag/2026.10.26.1331)] - 2026-10-26
 
