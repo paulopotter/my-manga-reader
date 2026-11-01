@@ -45,4 +45,25 @@ describe('Rail', () => {
     const { getByTestId } = render(<Rail title="Continue" items={[]} loading variant="wide" onPressItem={jest.fn()} />);
     expect(getByTestId('rail-placeholder')).toBeTruthy();
   });
+
+  it('hands the held item back from a wide tile', () => {
+    const onLongPressItem = jest.fn();
+    const { getByTestId } = render(
+      <Rail title="Continue" items={[item]} variant="wide" onPressItem={jest.fn()} onLongPressItem={onLongPressItem} />,
+    );
+    fireEvent(getByTestId('rail-wide-card'), 'longPress');
+    expect(onLongPressItem).toHaveBeenCalledWith(item);
+  });
+
+  it('leaves holding a wide tile without a handler to do nothing', () => {
+    const { getByTestId } = render(<Rail title="Continue" items={[item]} variant="wide" onPressItem={jest.fn()} />);
+    expect(getByTestId('rail-wide-card').props.onLongPress).toBeUndefined();
+  });
+
+  it('gives the cover tiles no long press even when a handler is passed', () => {
+    const { getByText } = render(
+      <Rail title="Recent" items={[item]} onPressItem={jest.fn()} onLongPressItem={jest.fn()} />,
+    );
+    expect(getByText('One Piece')).toBeTruthy();
+  });
 });

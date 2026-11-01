@@ -477,3 +477,66 @@ describe('DashboardTool.continueItem — progress from the device', () => {
     expect(DashboardTool.continueItem({ serie: digest(), t, local: { page: 0, scrollFraction: 0, updatedAtEpochMs: NOW } })?.progressFraction).toBeUndefined();
   });
 });
+
+describe('DashboardTool — series hidden from "continue reading"', () => {
+  const READ_AT = NOW - 2 * HOUR;
+  const abandoned = (readDate = READ_AT) =>
+    serie({ id: 'abandoned', pages: { read: 3, total: 10 }, lastUpdatesUTC: { readDate } });
+  const other = serie({ id: 'other', pages: { read: 4, total: 10 }, lastUpdatesUTC: { readDate: NOW - 5 * HOUR } });
+
+  it('lastReadOf is the last read date, 0 when never read', () => {
+    expect(DashboardTool.lastReadOf({ serie: abandoned() })).toBe(READ_AT);
+    expect(DashboardTool.lastReadOf({ serie: serie({ id: 'x' }) })).toBe(0);
+    expect(DashboardTool.lastReadOf({ serie: serie({ id: 'y', lastUpdatesUTC: { readDate: -62_135_596_800_000 } }) })).toBe(0);
+  });
+
+  it('keeps a hidden series out of the candidates while it was not read since', () => {
+    const hidden = new Map([['abandoned', READ_AT]]);
+    expect(DashboardTool.continueCandidates({ series: [abandoned(), other], limit: 5, hidden }).map(s => s.id)).toEqual(['other']);
+  });
+
+  it('brings it back once it is read again (a newer read date)', () => {
+    const hidden = new Map([['abandoned', READ_AT]]);
+    const readAgain = abandoned(READ_AT + 1);
+    expect(DashboardTool.continueCandidates({ series: [readAgain, other], limit: 5, hidden }).map(s => s.id)).toEqual(['abandoned', 'other']);
+  });
+
+  it('hides a series that was never read (date 0) until it is', () => {
+    const neverRead = serie({ id: 'never', pages: { read: 3, total: 10 } });
+    const hidden = new Map([['never', 0]]);
+    expect(DashboardTool.continueCandidates({ series: [neverRead], limit: 5, hidden })).toEqual([]);
+  });
+
+  it('shows everything when nothing is hidden', () => {
+    expect(DashboardTool.continueCandidates({ series: [abandoned(), other], limit: 5 })).toHaveLength(2);
+    expect(DashboardTool.continueCandidates({ series: [abandoned(), other], limit: 5, hidden: new Map() })).toHaveLength(2);
+  });
+
+  it('does not let a hidden series fall into "not finished yet" either', () => {
+    const hidden = new Map([['abandoned', READ_AT]]);
+    const items = DashboardTool.unfinished({ series: [abandoned(), other], exclude: new Set(), limit: 5, hidden, t });
+    expect(items.map(i => i.seriesId)).toEqual(['other']);
+  });
+
+  it('does not make a hidden series an owner of the rails below, so a followed update can still show it', () => {
+    const hidden = new Map([['abandoned', READ_AT]]);
+    const owners = DashboardTool.followedOwners({ series: [abandoned(), other], continueIds: new Set(), hidden });
+    expect([...owners]).toEqual(['other']);
+  });
+
+  it('build leaves a hidden series out of "continue reading" and "not finished yet", but not out of the stats', () => {
+    const hidden = new Map([['abandoned', READ_AT]]);
+    const data = DashboardTool.build({
+      series: [abandoned(), other],
+      followedIds: new Set(),
+      continueSeries: [],
+      continueIds: new Set(),
+      followedDigests: new Map(),
+      localProgress: new Map(),
+      hidden,
+      t,
+    });
+    expect(data.unfinished.map(i => i.seriesId)).toEqual(['other']);
+    expect(data.stats.inProgress).toBe(2);
+  });
+});

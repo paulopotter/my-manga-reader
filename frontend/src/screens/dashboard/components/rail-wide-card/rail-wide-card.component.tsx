@@ -21,6 +21,8 @@ export interface RailWideCardProps {
   // "Novel" / "PDF".
   badge?: string;
   onPress: (id: string) => void;
+  // Holding the tile (hide it from the rail). Absent → holding does nothing.
+  onLongPress?: (id: string) => void;
 }
 
 export const RailWideCard = React.memo(function RailWideCard({
@@ -33,11 +35,17 @@ export const RailWideCard = React.memo(function RailWideCard({
   blurred,
   badge,
   onPress,
+  onLongPress,
 }: RailWideCardProps) {
   const styles = useStyles(railWideCardStyles);
   const { colors } = useTheme();
   return (
-    <TouchableOpacity style={styles.card} onPress={() => onPress(id)} activeOpacity={0.8} testID="rail-wide-card">
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => onPress(id)}
+      onLongPress={onLongPress ? () => onLongPress(id) : undefined}
+      activeOpacity={0.8}
+      testID="rail-wide-card">
       <Image source={{ uri: coverUrl }} style={styles.cover} resizeMode="cover" blurRadius={blurred ? blur.cover : 0} />
       <View style={styles.body}>
         <Text style={[styles.name, blurred && styles.textBlurred]} numberOfLines={2}>

@@ -13,6 +13,8 @@ export interface RailProps {
   title: string;
   items: DashboardItem[];
   onPressItem: (item: DashboardItem) => void;
+  // Holding a 'wide' tile. Only that variant has it: the cover tiles do nothing when held.
+  onLongPressItem?: (item: DashboardItem) => void;
   // The tiles are still being fetched: show placeholders instead of "nothing here".
   loading?: boolean;
   // 'wide' for a rail whose taps go straight into the content, 'cover' (default) for one that opens the series.
@@ -22,7 +24,7 @@ export interface RailProps {
 const PLACEHOLDER_TILES = [0, 1, 2];
 const PLACEHOLDER_WIDE_TILES = [0, 1];
 
-export function Rail({ title, items, onPressItem, loading = false, variant = 'cover' }: RailProps) {
+export function Rail({ title, items, onPressItem, onLongPressItem, loading = false, variant = 'cover' }: RailProps) {
   const wide = variant === 'wide';
   const styles = useStyles(railStyles);
   if (items.length === 0 && !loading) {return null;}
@@ -60,6 +62,7 @@ export function Rail({ title, items, onPressItem, loading = false, variant = 'co
                 blurred={item.blurred}
                 badge={item.badge}
                 onPress={() => onPressItem(item)}
+                onLongPress={onLongPressItem ? () => onLongPressItem(item) : undefined}
               />
             ) : (
               <RailCard

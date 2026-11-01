@@ -5,6 +5,7 @@ jest.mock('../caches/cache.manager', () => ({
 }));
 
 import { CacheManager } from '../caches/cache.manager';
+import { HiddenContinueManager } from './hidden-continue.store';
 import { ReadingProgressManager } from './reading-progress.store';
 import { Store } from './store.manager';
 
@@ -129,5 +130,52 @@ describe('ReadingProgressManager (Store bound to the readingProgress domain)', (
       await ReadingProgressManager.clear('c1');
       expect(mockInvalidate).toHaveBeenCalledWith({ key: 'c1', variant: '' });
     });
+  });
+});
+
+describe('HiddenContinueManager (Store bound to the hiddenContinue domain)', () => {
+  const stored = (readDates: Record<string, number>) => ({
+    value: JSON.stringify({ readDates }),
+    cachedAtEpochMs: 1,
+    ttlMs: 0,
+    isExpired: false,
+  });
+
+  it('is empty when nothing was ever hidden', async () => {
+    mockGet.mockResolvedValue(null);
+    expect((await HiddenContinueManager.get()).size).toBe(0);
+    expect(mockGet).toHaveBeenCalledWith({ key: 'hidden-continue', variant: '' });
+  });
+
+  it('reads each hidden series with the read date it had when hidden', async () => {
+    mockGet.mockResolvedValue(stored({ '7': 1_000, '9': 0 }));
+    expect(await HiddenContinueManager.get()).toEqual(new Map([['7', 1_000], ['9', 0]]));
+  });
+
+  it('hides a series by adding it to the one record, keeping the ones already hidden', async () => {
+    mockGet.mockResolvedValue(stored({ '7': 1_000 }));
+    await HiddenContinueManager.hide({ seriesId: '9', readDateEpochMs: 2_000 });
+    expect(mockPut).toHaveBeenCalledWith({
+      key: 'hidden-continue',
+      value: JSON.stringify({ readDates: { '7': 1_000, '9': 2_000 } }),
+      domain: 'hiddenContinue',
+      variant: '',
+    });
+  });
+
+  it('starts the record when nothing was hidden yet', async () => {
+    mockGet.mockResolvedValue(null);
+    await HiddenContinueManager.hide({ seriesId: '9', readDateEpochMs: 2_000 });
+    expect(mockPut).toHaveBeenCalledWith(
+      expect.objectContaining({ value: JSON.stringify({ readDates: { '9': 2_000 } }) }),
+    );
+  });
+
+  it('hiding a series again replaces the date it was hidden at', async () => {
+    mockGet.mockResolvedValue(stored({ '7': 1_000 }));
+    await HiddenContinueManager.hide({ seriesId: '7', readDateEpochMs: 5_000 });
+    expect(mockPut).toHaveBeenCalledWith(
+      expect.objectContaining({ value: JSON.stringify({ readDates: { '7': 5_000 } }) }),
+    );
   });
 });

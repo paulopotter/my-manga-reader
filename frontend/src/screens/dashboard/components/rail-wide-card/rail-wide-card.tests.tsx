@@ -35,6 +35,15 @@ describe('RailWideCard', () => {
     expect(onPress).toHaveBeenCalledWith('s1');
   });
 
+  it('reports a long press with its id, and holding does nothing without a handler', () => {
+    const onLongPress = jest.fn();
+    const { getByTestId, rerender } = render(<RailWideCard {...base} onLongPress={onLongPress} />);
+    fireEvent(getByTestId('rail-wide-card'), 'longPress');
+    expect(onLongPress).toHaveBeenCalledWith('s1');
+    rerender(<RailWideCard {...base} />);
+    expect(getByTestId('rail-wide-card').props.onLongPress).toBeUndefined();
+  });
+
   it('blurs the cover and the texts only when asked', () => {
     const { Image } = require('react-native');
     const { UNSAFE_getByType, getByText, rerender } = render(<RailWideCard {...base} caption="Cap. 3" />);

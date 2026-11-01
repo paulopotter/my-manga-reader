@@ -9,6 +9,7 @@ const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: mockNavigate }) }));
 
 let mockState: Record<string, unknown>;
+let mockHide: jest.Mock;
 jest.mock('./hooks', () => ({ useDashboard: () => mockState }));
 
 import { Routes } from '../../navigation/routes';
@@ -38,7 +39,8 @@ function renderScreen() {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockState = { status: 'ready', data, refreshing: false, refresh: jest.fn(), retry: jest.fn() };
+  mockHide = jest.fn().mockResolvedValue(undefined);
+  mockState = { status: 'ready', data, refreshing: false, refresh: jest.fn(), retry: jest.fn(), hideContinue: mockHide };
 });
 
 describe('DashboardScreen', () => {
@@ -52,6 +54,38 @@ describe('DashboardScreen', () => {
     const { findByText } = renderScreen();
     fireEvent.press(await findByText('Fresh'));
     expect(mockNavigate).toHaveBeenCalledWith(Routes.SERIES_DETAIL, { seriesId: 's2', origin: 'DASHBOARD' });
+  });
+
+  describe('hiding a series from "continue reading"', () => {
+    it('asks first, naming the series, when a continue-reading tile is held', async () => {
+      const { findByText, getByText, queryByText } = renderScreen();
+      expect(queryByText(/Hide “Reading”/)).toBeNull();
+      fireEvent(await findByText('Reading'), 'longPress');
+      expect(getByText(/Hide “Reading” from Continue reading\?/)).toBeTruthy();
+      expect(mockHide).not.toHaveBeenCalled();
+    });
+
+    it('hides the series on confirm, and does not open it', async () => {
+      const { findByText, getByText } = renderScreen();
+      fireEvent(await findByText('Reading'), 'longPress');
+      fireEvent.press(getByText('Hide'));
+      expect(mockHide).toHaveBeenCalledWith({ seriesId: 's1' });
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it('keeps the series when the ask is cancelled', async () => {
+      const { findByText, getByText, queryByText } = renderScreen();
+      fireEvent(await findByText('Reading'), 'longPress');
+      fireEvent.press(getByText('Cancel'));
+      expect(mockHide).not.toHaveBeenCalled();
+      expect(queryByText(/Hide “Reading”/)).toBeNull();
+    });
+
+    it('does nothing when another rail tile is held', async () => {
+      const { findByText, queryByText } = renderScreen();
+      fireEvent(await findByText('Fresh'), 'longPress');
+      expect(queryByText(/from Continue reading/)).toBeNull();
+    });
   });
 
   it('draws the rails that have something and hides the ones with nothing', async () => {

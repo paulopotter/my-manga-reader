@@ -170,6 +170,9 @@ export interface Strings {
   dashboardStatInProgress: string;
   dashboardError: string;
   dashboardRetry: string;
+  dashboardHideTitle: string; // "{0}" = series name — asks to hide it from "continue reading"
+  dashboardHideConfirm: string;
+  dashboardHideCancel: string;
   bookReaderLoading: string;
   bookReaderError: string;
   bookReaderRetry: string;
@@ -644,6 +647,9 @@ const ptBR: Strings = {
   dashboardStatInProgress: 'Em andamento',
   dashboardError: 'Não foi possível carregar a Home',
   dashboardRetry: 'Tentar novamente',
+  dashboardHideTitle: 'Esconder “{0}” de Continuar lendo? Ela volta quando você ler de novo.',
+  dashboardHideConfirm: 'Esconder',
+  dashboardHideCancel: 'Cancelar',
   bookReaderLoading: 'Carregando capítulo…',
   bookReaderError: 'Não foi possível abrir este capítulo',
   bookReaderRetry: 'Tentar novamente',
@@ -1080,6 +1086,9 @@ const en: Strings = {
   dashboardStatInProgress: 'In progress',
   dashboardError: 'Could not load Home',
   dashboardRetry: 'Try again',
+  dashboardHideTitle: 'Hide “{0}” from Continue reading? It comes back when you read it again.',
+  dashboardHideConfirm: 'Hide',
+  dashboardHideCancel: 'Cancel',
   bookReaderLoading: 'Loading chapter…',
   bookReaderError: 'Could not open this chapter',
   bookReaderRetry: 'Try again',

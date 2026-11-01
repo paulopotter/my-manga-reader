@@ -28,8 +28,14 @@ jest.mock('../../../shared/services/serials', () => ({
 }));
 
 const mockLocalProgress = jest.fn();
+const mockHiddenGet = jest.fn();
+const mockHiddenHide = jest.fn();
 jest.mock('../../../shared/managers/store', () => ({
   ReadingProgressManager: { get: (...a: unknown[]) => mockLocalProgress(...a) },
+  HiddenContinueManager: {
+    get: (...a: unknown[]) => mockHiddenGet(...a),
+    hide: (...a: unknown[]) => mockHiddenHide(...a),
+  },
 }));
 
 const mockFollowedIds = jest.fn();
@@ -68,6 +74,8 @@ function serialsDigest() {
 beforeEach(() => {
   jest.clearAllMocks();
   mockLocalProgress.mockResolvedValue(null);
+  mockHiddenGet.mockResolvedValue(new Map());
+  mockHiddenHide.mockResolvedValue(undefined);
   mockAdult.mockImplementation((items: unknown[]) => items);
   mockSerialsGet.mockResolvedValue(serialsDigest());
   mockFollowedIds.mockResolvedValue(['2']);
@@ -383,5 +391,68 @@ describe('useDashboard — progress from the device', () => {
     await waitFor(() => expect(mockLocalProgress).toHaveBeenCalled());
 
     expect(result.current.data!.continueReading[0].progressFraction).toBeUndefined();
+  });
+});
+
+describe('useDashboard — hiding a series from "continue reading"', () => {
+  it('leaves a hidden series out of "continue reading" and "not finished yet", and never asks for its digest', async () => {
+    mockHiddenGet.mockResolvedValue(new Map([['1', NOW]]));
+    const { result } = renderHook(() => useDashboard());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    await waitFor(() => expect(result.current.continueLoading).toBe(false));
+    expect(result.current.data!.continueReading).toEqual([]);
+    expect(result.current.data!.unfinished).toEqual([]);
+    expect(mockSerialGet).not.toHaveBeenCalledWith(expect.objectContaining({ seriesId: '1' }));
+    // Hidden from those rails, but still part of the library.
+    expect(result.current.data!.stats.inProgress).toBe(1);
+  });
+
+  it('brings the series back once it was read after it was hidden', async () => {
+    mockHiddenGet.mockResolvedValue(new Map([['1', NOW - 1]]));
+    const { result } = renderHook(() => useDashboard());
+    await waitFor(() => expect(result.current.data?.continueReading).toHaveLength(1));
+  });
+
+  it('treats a failing read of the hidden ones as nothing hidden', async () => {
+    mockHiddenGet.mockRejectedValue(new Error('boom'));
+    const { result } = renderHook(() => useDashboard());
+    await waitFor(() => expect(result.current.data?.continueReading).toHaveLength(1));
+  });
+
+  it('hideContinue remembers the last read date, then reloads cache-first so the tile goes', async () => {
+    const { result } = renderHook(() => useDashboard());
+    await waitFor(() => expect(result.current.data?.continueReading).toHaveLength(1));
+
+    mockHiddenGet.mockResolvedValue(new Map([['1', NOW]]));
+    mockSerialsGet.mockClear();
+    await act(async () => {
+      await result.current.hideContinue({ seriesId: '1' });
+    });
+
+    expect(mockHiddenHide).toHaveBeenCalledWith({ seriesId: '1', readDateEpochMs: NOW });
+    expect(mockSerialsGet).toHaveBeenCalledWith({ force: false });
+    await waitFor(() => expect(result.current.data!.continueReading).toEqual([]));
+    expect(result.current.data!.unfinished).toEqual([]);
+  });
+
+  it('hideContinue ignores a series it does not know', async () => {
+    const { result } = renderHook(() => useDashboard());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    await act(async () => {
+      await result.current.hideContinue({ seriesId: 'nope' });
+    });
+    expect(mockHiddenHide).not.toHaveBeenCalled();
+  });
+
+  it('hideContinue leaves the rails alone when remembering it fails', async () => {
+    const { result } = renderHook(() => useDashboard());
+    await waitFor(() => expect(result.current.data?.continueReading).toHaveLength(1));
+    mockHiddenHide.mockRejectedValue(new Error('disk'));
+    mockSerialsGet.mockClear();
+    await act(async () => {
+      await result.current.hideContinue({ seriesId: '1' });
+    });
+    expect(mockSerialsGet).not.toHaveBeenCalled();
+    expect(result.current.data!.continueReading).toHaveLength(1);
   });
 });

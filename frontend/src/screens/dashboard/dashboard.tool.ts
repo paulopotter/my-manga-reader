@@ -41,6 +41,15 @@ function isInProgress(serie: Serie): boolean {
   return pages != null && pages.read > 0 && pages.read < pages.total;
 }
 
+// A series the user hid from "continue reading" stays hidden while its last read date is still the one
+// it had when hidden; reading it again makes that date newer, and it is back.
+function isHidden({ serie, hidden }: { serie: Serie; hidden: ReadonlyMap<string, number> }): boolean {
+  const hiddenAt = hidden.get(serie.id);
+  return hiddenAt != null && (readDateOf(serie) ?? 0) <= hiddenAt;
+}
+
+const NOT_HIDDEN: ReadonlyMap<string, number> = new Map();
+
 function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value));
 }
@@ -76,12 +85,26 @@ function updatedCaption({ serie, t }: { serie: Serie; t: Strings }): string | un
 }
 
 export const DashboardTool = {
-  // The series worth fetching a digest for: started, not finished, most recently read first.
-  // Series-level pages are all the list row carries, so a series whose pages are all read (and
-  // got a new chapter since) is not seen here.
-  continueCandidates({ series, limit }: { series: Serie[]; limit: number }): Serie[] {
+  // When the series was last read (epoch ms), 0 when never — what "hide from continue reading" remembers.
+  lastReadOf({ serie }: { serie: Serie }): number {
+    return readDateOf(serie) ?? 0;
+  },
+
+  // The series worth fetching a digest for: started, not finished, most recently read first, and not
+  // hidden by the user (`hidden`: series id → its last read date when hidden). Series-level pages are
+  // all the list row carries, so a series whose pages are all read (and got a new chapter since) is not
+  // seen here.
+  continueCandidates({
+    series,
+    limit,
+    hidden = NOT_HIDDEN,
+  }: {
+    series: Serie[];
+    limit: number;
+    hidden?: ReadonlyMap<string, number>;
+  }): Serie[] {
     return series
-      .filter(isInProgress)
+      .filter(s => isInProgress(s) && !isHidden({ serie: s, hidden }))
       .sort((a, b) => (readDateOf(b) ?? 0) - (readDateOf(a) ?? 0))
       .slice(0, limit + CONTINUE_CANDIDATE_BUFFER);
   },
@@ -219,16 +242,39 @@ export const DashboardTool = {
   },
 
   // The series that are started and not finished (any series, followed or not), most recently read
-  // first, that "continue reading" does not already own.
-  unfinishedCandidates({ series, exclude, limit }: { series: Serie[]; exclude: Set<string>; limit: number }): Serie[] {
+  // first, that "continue reading" does not already own. A hidden one is not here either: it would only
+  // turn up in this rail the moment it left the other.
+  unfinishedCandidates({
+    series,
+    exclude,
+    limit,
+    hidden = NOT_HIDDEN,
+  }: {
+    series: Serie[];
+    exclude: Set<string>;
+    limit: number;
+    hidden?: ReadonlyMap<string, number>;
+  }): Serie[] {
     return series
-      .filter(s => !exclude.has(s.id) && isInProgress(s))
+      .filter(s => !exclude.has(s.id) && isInProgress(s) && !isHidden({ serie: s, hidden }))
       .sort((a, b) => (readDateOf(b) ?? 0) - (readDateOf(a) ?? 0))
       .slice(0, limit);
   },
 
-  unfinished({ series, exclude, limit, t }: { series: Serie[]; exclude: Set<string>; limit: number; t: Strings }): DashboardItem[] {
-    return DashboardTool.unfinishedCandidates({ series, exclude, limit }).map(s => {
+  unfinished({
+    series,
+    exclude,
+    limit,
+    hidden,
+    t,
+  }: {
+    series: Serie[];
+    exclude: Set<string>;
+    limit: number;
+    hidden?: ReadonlyMap<string, number>;
+    t: Strings;
+  }): DashboardItem[] {
+    return DashboardTool.unfinishedCandidates({ series, exclude, limit, hidden }).map(s => {
       const fraction = clamp01(s.pages!.read / s.pages!.total);
       return {
         ...baseItem({ serie: s, t }),
@@ -241,9 +287,17 @@ export const DashboardTool = {
   // What the rails above "followed series updated" own, known from the list alone (so nothing moves when
   // digests arrive): "continue reading"'s series and the ones "not finished yet" lists. A series is on the
   // Home once, and the one that is started and unfinished belongs to those rails, not to this one.
-  followedOwners({ series, continueIds }: { series: Serie[]; continueIds: Set<string> }): Set<string> {
+  followedOwners({
+    series,
+    continueIds,
+    hidden,
+  }: {
+    series: Serie[];
+    continueIds: Set<string>;
+    hidden?: ReadonlyMap<string, number>;
+  }): Set<string> {
     const owners = new Set(continueIds);
-    DashboardTool.unfinishedCandidates({ series, exclude: continueIds, limit: DASHBOARD_LIMITS.unfinished }).forEach(s => owners.add(s.id));
+    DashboardTool.unfinishedCandidates({ series, exclude: continueIds, limit: DASHBOARD_LIMITS.unfinished, hidden }).forEach(s => owners.add(s.id));
     return owners;
   },
 
@@ -275,6 +329,7 @@ export const DashboardTool = {
     continueIds,
     followedDigests,
     localProgress,
+    hidden,
     t,
   }: {
     series: Serie[];
@@ -284,6 +339,8 @@ export const DashboardTool = {
     followedDigests: Map<string, Serie | null>;
     // The device's own reading positions, by chapter id.
     localProgress: Map<string, LocalProgress>;
+    // Series the user hid from "continue reading", by id → last read date when hidden.
+    hidden?: ReadonlyMap<string, number>;
     t: Strings;
   }): DashboardData {
     const continueReading = continueSeries
@@ -297,7 +354,7 @@ export const DashboardTool = {
     // dropped later.
     const shown = new Set(continueIds);
     continueReading.forEach(item => shown.add(item.seriesId));
-    const owners = DashboardTool.followedOwners({ series, continueIds });
+    const owners = DashboardTool.followedOwners({ series, continueIds, hidden });
     const candidates = DashboardTool.followedUpdatedCandidates({
       series,
       followedIds,
@@ -314,7 +371,7 @@ export const DashboardTool = {
     return {
       continueReading,
       followedUpdated,
-      unfinished: DashboardTool.unfinished({ series, exclude: shown, limit: DASHBOARD_LIMITS.unfinished, t }),
+      unfinished: DashboardTool.unfinished({ series, exclude: shown, limit: DASHBOARD_LIMITS.unfinished, hidden, t }),
       recentlyUpdated: DashboardTool.recentlyUpdated({ series, limit: DASHBOARD_LIMITS.recentlyUpdated, t }),
       recentlyAdded: DashboardTool.recentlyAdded({ series, limit: DASHBOARD_LIMITS.recentlyAdded, t }),
       stats: DashboardTool.stats({ series, followedIds }),

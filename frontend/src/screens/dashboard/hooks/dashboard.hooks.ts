@@ -5,7 +5,7 @@ import { useAdultFiltered } from '../../../shared/context/adult-filter';
 import { useStrings } from '../../../shared/i18n';
 import { useEvent } from '../../../shared/managers/events';
 import { FollowedSeriesService } from '../../../shared/services/followed-series';
-import { ReadingProgressManager } from '../../../shared/managers/store';
+import { HiddenContinueManager, ReadingProgressManager } from '../../../shared/managers/store';
 import { SerialService, SerialsService } from '../../../shared/services/serials';
 import { ConcurrencyTool } from '../../../shared/tools/concurrency';
 import { SeriesTool, SerieEvents, SerieTool, type Serie } from '../../../shared/tools/serials';
@@ -25,6 +25,10 @@ interface Source {
   // What is known of the digests of the "followed series updated" candidates: a digest, null when it
   // could not be had, no entry while it is on its way.
   followedDigests: Map<string, Serie | null>;
+}
+
+function sameHidden({ previous, next }: { previous: Map<string, number>; next: Map<string, number> }): boolean {
+  return previous.size === next.size && [...next].every(([id, date]) => previous.get(id) === date);
 }
 
 type DigestTask = { kind: 'continue'; serie: Serie; index: number } | { kind: 'followed'; serie: Serie };
@@ -51,6 +55,8 @@ export function useDashboard() {
   // The tiles of a rail are still being fetched and none is on screen yet.
   const [continueLoading, setContinueLoading] = useState(false);
   const [followedLoading, setFollowedLoading] = useState(false);
+  // The series the user hid from "continue reading", by id → its last read date when hidden.
+  const [hidden, setHidden] = useState<Map<string, number>>(new Map());
   // Where the reader got to in each tile's chapter, as the device saved it: the server's count lags it.
   const [localProgress, setLocalProgress] = useState<Map<string, LocalProgress>>(new Map());
   // What the rails show right now, so a reload starts from it instead of from nothing.
@@ -82,9 +88,10 @@ export function useDashboard() {
     const request = ++requestRef.current;
     const startedAt = Date.now();
     try {
-      const [serialsDigest, followedIds] = await Promise.all([
+      const [serialsDigest, followedIds, hiddenNow] = await Promise.all([
         SerialsService.get({ force }),
         FollowedSeriesService.ids.get().catch(() => [] as string[]),
+        HiddenContinueManager.get().catch(() => new Map<string, number>()),
       ]);
       if (!serialsDigest.isSuccess) {
         throw new Error(serialsDigest.error.message ?? serialsDigest.error.code ?? 'serials digest failed');
@@ -94,12 +101,13 @@ export function useDashboard() {
       const listMs = Date.now() - startedAt;
 
       if (request !== requestRef.current) {return;}
-      const candidates = DashboardTool.continueCandidates({ series, limit: DASHBOARD_LIMITS.continueReading });
+      setHidden(previous => (sameHidden({ previous, next: hiddenNow }) ? previous : hiddenNow));
+      const candidates = DashboardTool.continueCandidates({ series, limit: DASHBOARD_LIMITS.continueReading, hidden: hiddenNow });
       const continueIds = DashboardTool.continueIds({ candidates, limit: DASHBOARD_LIMITS.continueReading });
       const followedCandidates = DashboardTool.followedUpdatedCandidates({
         series,
         followedIds: followed,
-        exclude: DashboardTool.followedOwners({ series, continueIds }),
+        exclude: DashboardTool.followedOwners({ series, continueIds, hidden: hiddenNow }),
         limit: DASHBOARD_LIMITS.followedUpdated,
       });
       // Start from the digests already on screen: a reload only replaces a tile when its fresh digest
@@ -199,6 +207,7 @@ export function useDashboard() {
       continueIds: source.continueIds,
       followedDigests: source.followedDigests,
       localProgress,
+      hidden,
       t,
     });
     const mark = (items: DashboardItem[]): DashboardItem[] =>
@@ -211,7 +220,7 @@ export function useDashboard() {
       unfinished: mark(built.unfinished),
       recentlyAdded: mark(built.recentlyAdded),
     };
-  }, [source, visibleSeries, localProgress, t]);
+  }, [source, visibleSeries, localProgress, hidden, t]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
@@ -219,10 +228,26 @@ export function useDashboard() {
     setRefreshing(false);
   }, [load]);
 
+  // Hides a series from "continue reading" until it is read again, then reloads (cache-first) so the
+  // rails drop it at once. Remembers its last read date: a newer one is what brings it back.
+  const hideContinue = useCallback(
+    async ({ seriesId }: { seriesId: string }) => {
+      const serie = source?.series.find(s => s.id === seriesId);
+      if (!serie) {return;}
+      try {
+        await HiddenContinueManager.hide({ seriesId, readDateEpochMs: DashboardTool.lastReadOf({ serie }) });
+      } catch {
+        return;
+      }
+      await load({ force: false });
+    },
+    [source, load],
+  );
+
   const retry = useCallback(() => {
     setStatus('loading');
     load({ force: false });
   }, [load]);
 
-  return { status, data, refreshing, continueLoading, followedLoading, refresh, retry };
+  return { status, data, refreshing, continueLoading, followedLoading, refresh, retry, hideContinue };
 }
