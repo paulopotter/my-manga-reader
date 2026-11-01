@@ -10,6 +10,18 @@ Kotlin and RN bundle versions follow Semantic Versioning independently.
 
 ## [Unreleased]
 
+### Backend
+
+- fix: uma imagem que falhou ao carregar no modo webnovel agora mostra o botão de recarregar no início, no meio e no fim dela quando é mais alta que a tela, em vez de só no meio.
+
+### Frontend
+
+- fix: a tela de erro do leitor, de imagens e de livros, voltou a ser legível em todos os temas, e o "← Voltar" agora fica no topo da tela.
+- fix: um capítulo aberto a partir de uma notificação não trava mais no fim do capítulo; a ordem dos capítulos da obra é buscada de novo quando o capítulo aberto não está nela ou é o último, e a navegação para o anterior e o próximo volta a funcionar.
+- feat: a barra lateral do leitor vira uma barra de arrastar quando as bolinhas não cabem, com uma bolha que mostra a página sob o dedo, para capítulos com muitas páginas continuarem navegáveis.
+- feat: o cabeçalho do leitor mostra o capítulo atual e o total de capítulos da obra, em vez da página atual e do total de páginas.
+- feat: segurar um card de "Continuar lendo" na Home esconde a obra desse trilho e de "Ainda não terminei…" até você ler de novo.
+
 ## [[2026.10.26.1331](https://github.com/paulopotter/my-kavita-app-reader/releases/tag/2026.10.26.1331)] - 2026-10-26
 
 Maior estabilidade nas notificações em segundo plano e melhorias na navegação e visualização de avisos dentro do app. / Better background notification stability and improvements to navigation and in-app alert viewing.
@@ -23,7 +35,7 @@ Maior estabilidade nas notificações em segundo plano e melhorias na navegaçã
 **[en]**
 - The mobile notification service was improved to prevent the app from crashing unexpectedly when the system interrupts background tasks, resuming operation automatically once the reader is reopened.
 
-### **Frontend` - `1.10.0`
+### **Frontend** - `1.10.0`
 
 **[pt-BR]**
 - Adicionado um aviso visual discreto no topo da tela quando novas notificações chegam com o aplicativo aberto, permitindo tocar para ver a lista agrupada por série com capas e respeito ao filtro de conteúdo sensível.
