@@ -2,119 +2,17 @@
   "env": {
     "OTEL_RESOURCE_ATTRIBUTES": "service.name=claude-code,workspace.name=my-kavita-app-reader"
   },
+  "deny": [
+    "Bash(git *)",
+    "Bash(gh *)"
+  ],
   "hooks": {
-    "Notification": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/notification-token-display.sh"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/post-write-token-diff.sh"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/session-end-token-report.sh"
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/pre-tool-bash-guard.sh"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/pre-tool-read-guard.sh"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
             "command": "bash .claude/hooks/pre-tool-token-guard.sh"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/stop-path-guard.sh"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/stop-session-snapshot.sh"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/usr/local/bin/node /usr/local/lib/node_modules/claude-token-optimizer/bin/cto.js measure 2>&1 | jq -Rs '{systemMessage: .}'",
-            "timeout": 30,
-            "statusMessage": "Auditando tokens auto-carregados..."
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/user-prompt-ghost-scanner.sh"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/user-prompt-inject-context.sh"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/user-prompt-inject-snapshot.sh"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/user-prompt-validate-claude-md.sh"
           }
         ]
       }
