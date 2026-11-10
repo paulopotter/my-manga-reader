@@ -10,6 +10,9 @@ Kotlin and RN bundle versions follow Semantic Versioning independently.
 
 ## [Unreleased]
 
+### Frontend
+- fix: o cabeçalho do leitor (obra e título do capítulo) não fica mais atrás da câmera/notch quando o modo imersivo está ligado.
+
 ## [[2026.11.01.1721](https://github.com/paulopotter/my-kavita-app-reader/releases/tag/2026.11.01.1721)] - 2026-11-01
 
 Agora ficou mais fácil navegar por capítulos longos, o leitor exibe o progresso correto de capítulos e você pode esconder obras da tela inicial. / Now it is easier to navigate through long chapters, the reader displays the correct chapter progress, and you can hide titles from the home screen.
