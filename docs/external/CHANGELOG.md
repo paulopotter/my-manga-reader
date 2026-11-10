@@ -10,6 +10,39 @@ Kotlin and RN bundle versions follow Semantic Versioning independently.
 
 ## [Unreleased]
 
+## [[2026.11.10.1744](https://github.com/paulopotter/my-manga-reader/releases/tag/2026.11.10.1744)] - 2026-11-10
+
+Nova inteligência de notificações, menus contextuais rápidos e maior controle sobre os trilhos da tela inicial. / New smart notifications, quick context menus, and greater control over home screen shelves.
+
+
+### **Backend** - `1.11.0`
+
+**[pt-BR]**
+- As notificações de novos capítulos agora só disparam quando o capítulo lançado é inédito na obra, evitando alertas repetidos por atrasos de sincronização
+- Informações de uso de bateria, memória e processador do seu aparelho agora são salvas localmente e podem ser exportadas na tela de diagnóstico
+
+**[en]**
+- New chapter notifications now only trigger when an actual unreleased chapter arrives, preventing redundant alerts for delayed synchronization
+- Your device's battery, memory, and processor usage statistics are now saved locally and can be exported directly from the debug screen
+
+### **Frontend** - `1.12.0`
+
+**[pt-BR]**
+- Toque e segure em "Continuar lendo" ou "Ainda não terminei" para abrir um menu rápido com opções para ir direto à obra ou escondê-la com confirmação prévia
+- Os trilhos da tela inicial agora podem ser personalizados nos Ajustes, filtrando novidades por período e ocultando obras já lidas ou sem acompanhamento
+- Adicionado um botão para marcar o mangá como lido diretamente a partir do detalhe da notificação recebida
+- Cada capítulo na página da obra agora exibe sua data de lançamento, com formatos personalizáveis nas configurações que incluem padrão do idioma, datas fixas ou formato relativo
+- A tela de Ajustes agora retorna automaticamente ao menu principal após dez segundos de inatividade fora da aba, em vez de reabrir no subnível anterior
+- O cabeçalho do leitor foi simplificado para exibir o progresso no formato compacto de capítulo atual sobre o total
+
+**[en]**
+- Press and hold on "Continue Reading" or "Not Finished Yet" to open a quick menu with options to jump straight to the title or hide it with a confirmation prompt
+- Home screen shelves are now fully customizable in Settings, allowing you to filter recent releases by timeframe and hide completed or unfollowed works
+- A new button lets you mark a manga as read directly from the notification details panel
+- Every chapter on the series page now displays its release date, featuring customizable formats in settings such as locale default, fixed dates, or relative time
+- The Settings screen now safely returns to the main menu after ten seconds away from the tab, preventing it from reopening in the previous submenu
+- The reader header has been streamlined to display progress in a compact current-over-total chapter format
+
 ## [[2026.11.10.1519](https://github.com/paulopotter/my-manga-reader/releases/tag/2026.11.10.1519)] - 2026-11-10
 
 O cabeçalho do leitor agora respeita o entalhe da tela e não fica mais escondido pela câmera quando o modo imersivo está ativado. / The reader header now respects the screen notch and is no longer hidden behind the camera when immersive mode is turned on.
