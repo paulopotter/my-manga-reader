@@ -35,6 +35,17 @@ describe('ChapterListItem', () => {
     expect(getByText('1. A Chegada')).toBeTruthy();
   });
 
+  it('draws the date label beside the title, and none when it has no date', () => {
+    const { getByText, queryByText, rerender } = render(
+      <ChapterListItem chapter={makeChapter()} title="1. A Chegada" dateLabel="08/11/2026" index={0} selectionMode={false} selected={false} onPress={jest.fn()} onLongPress={jest.fn()} />,
+    );
+    expect(getByText('08/11/2026')).toBeTruthy();
+    rerender(
+      <ChapterListItem chapter={makeChapter()} title="1. A Chegada" index={0} selectionMode={false} selected={false} onPress={jest.fn()} onLongPress={jest.fn()} />,
+    );
+    expect(queryByText('08/11/2026')).toBeNull();
+  });
+
   it('calls onPress with the chapter id when tapped', () => {
     const onPress = jest.fn();
     const { getByText } = render(

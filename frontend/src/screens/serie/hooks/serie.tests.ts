@@ -47,6 +47,7 @@ jest.mock('../../../shared', () => ({
       put: jest.fn(),
       reset: jest.fn(),
     },
+    dateStyle: { get: jest.fn().mockResolvedValue('LANGUAGE') },
   },
   useAction: () => ({ realize: jest.fn() }),
   // real impl — pure; useSerie builds its own backAction through it

@@ -10,7 +10,8 @@ import {
   type ExternalMetadataResolvedEvent,
 } from '../../../shared/bridge';
 import { EventBus, useEvent } from '../../../shared/managers/events';
-import { ChapterEvents } from '../../../shared/tools/chapters';
+import { ChapterEvents, DEFAULT_CHAPTER_DATE_STYLE } from '../../../shared/tools/chapters';
+import type { DateStyle } from '../../../shared/tools/date';
 import { SerieEvents, serieDigestResolvedPayload } from '../../../shared/tools/serials';
 import { useStrings } from '../../../shared/i18n';
 import { originRouteFor } from '../../../navigation/routes';
@@ -87,6 +88,8 @@ export function useSerie({ seriesId, origin }: { seriesId: string; origin?: NavO
   const [sortFixedThreshold, setSortFixedThreshold] = useState<number | undefined>(DEFAULT_SORT_PREFS.fixedThreshold);
   const [sortProgressPercent, setSortProgressPercent] = useState(DEFAULT_SORT_PREFS.progressPercent);
   const [hasSeriesSortOverride, setHasSeriesSortOverride] = useState(false);
+  // The shape of the date beside each chapter (a global setting, read once).
+  const [dateStyle, setDateStyle] = useState<DateStyle>(DEFAULT_CHAPTER_DATE_STYLE);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { realize } = useAction({ origin });
@@ -243,6 +246,10 @@ export function useSerie({ seriesId, origin }: { seriesId: string; origin?: NavO
       .then(prefs => applySortPrefs(prefs, 'isOverride' in prefs))
       .catch(() => applySortPrefs(DEFAULT_SORT_PREFS, false));
   }, [seriesId, applySortPrefs]);
+
+  useEffect(() => {
+    ChaptersTool.dateStyle.get().then(setDateStyle).catch(() => {});
+  }, []);
 
   const chapters = useMemo(
     () => (serie ? sortChapters(serie.chapters, sortMode, sortFixedThreshold, sortProgressPercent) : []),
@@ -547,6 +554,7 @@ export function useSerie({ seriesId, origin }: { seriesId: string; origin?: NavO
     sortFixedThreshold,
     sortProgressPercent,
     hasSeriesSortOverride,
+    dateStyle,
     selectionMode,
     selectedIds,
     realize,

@@ -32,6 +32,7 @@ export const chapterListItemStyles = createStyles(({ colors, text, line, spacing
       borderColor: colors.border.checkbox.on,
     },
     title: { color: colors.text.title.primary, fontSize: text.size[3], lineHeight: line.height[4], marginLeft: spacing[4], flex: 1 },
+    date: { color: colors.text.secondary, fontSize: text.size[2], lineHeight: line.height[4], marginLeft: spacing[4] },
     titleRead: { color: colors.text.secondary },
     titleSelected: { color: colors.text.title.primary, fontWeight: text.weight.bold },
 }));

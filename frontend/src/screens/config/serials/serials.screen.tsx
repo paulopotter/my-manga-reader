@@ -5,7 +5,7 @@ import { BackHandler, ScrollView, Text, TouchableOpacity, View } from 'react-nat
 // there). It lives in screens/serie/, not shared/, because config + that one screen are its only
 // callers; promote it to shared/ if a third screen ever needs it.
 import { ChapterSortFields } from '../../../screens/serie/components/chapter-sort';
-import { useStrings } from '../../../shared/i18n';
+import { useLanguage, useStrings } from '../../../shared/i18n';
 import type { Strings } from '../../../shared/i18n';
 import { BackChevron, Select } from '../components';
 import { IconButton } from '../../../shared/components/icon-button';
@@ -16,7 +16,8 @@ import {
   type MetadataSourcePreferences,
 } from '../../../shared/tools/metadata-sources';
 
-import { useMetadataSources, useSerialsSort } from './serials.hooks';
+import { DATE_STYLES, DateTool, type DateStyle } from '../../../shared/tools/date';
+import { useChapterDateStyle, useMetadataSources, useSerialsSort } from './serials.hooks';
 import { ChevronRight } from 'lucide-react-native';
 import { icon } from '../../../shared/theme';
 import { useStyles, useTheme } from '../../../shared/context';
@@ -36,6 +37,8 @@ export function SerialsSortScreen({ onBack }: { onBack: () => void }) {
   const t = useStrings();
   const { loading, mode, fixedThreshold, progressPercent, change } = useSerialsSort();
   const sources = useMetadataSources();
+  const dateStyle = useChapterDateStyle();
+  const { language } = useLanguage();
   const [showFields, setShowFields] = useState(false);
 
   // While the sub-page is open, back closes it instead of leaving this screen. Registered here
@@ -78,6 +81,17 @@ export function SerialsSortScreen({ onBack }: { onBack: () => void }) {
             t={t}
             onChange={change}
           />
+
+          <Text style={chrome.section}>{t.configChapterDateGroupTitle}</Text>
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>{t.configChapterDateRowLabel}</Text>
+            <Select
+              value={dateStyle.style}
+              options={dateStyleOptions({ t, language })}
+              placeholder={t.configChapterDateFollowLanguage}
+              onChange={id => dateStyle.change((id ?? 'LANGUAGE') as DateStyle)}
+            />
+          </View>
 
           <Text style={chrome.section}>{t.configMetadataSourceGroupTitle}</Text>
           {/* One line: what it is, which side is picked, and a way into the per-field page. The
@@ -159,6 +173,26 @@ function MetadataFieldsPage({
       </ScrollView>
     </View>
   );
+}
+
+const SAMPLE_DAY = new Date(2026, 10, 8).getTime();
+const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+
+// One option per date shape, each with a sample so the result is seen before it is picked. The
+// list comes from the tool (DATE_STYLES); only the names are said here, since only the screen has `t`.
+function dateStyleOptions({ t, language }: { t: Strings; language: string }) {
+  const names: Record<DateStyle, string> = {
+    LANGUAGE: t.configChapterDateFollowLanguage,
+    DMY: 'DD/MM/YYYY',
+    MDY: 'MM/DD/YYYY',
+    YMD: 'YYYY-MM-DD',
+    DMY_SHORT: 'DD/MM/YY',
+    RELATIVE: t.configChapterDateRelative,
+  };
+  return DATE_STYLES.map(style => {
+    const epochMs = style === 'RELATIVE' ? Date.now() - THREE_DAYS_MS : SAMPLE_DAY;
+    return { id: style, label: `${names[style]} (${DateTool.format.to.date({ epochMs, style, language, t })})` };
+  });
 }
 
 const sourceOptions = (t: Strings) => [

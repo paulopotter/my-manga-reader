@@ -17,7 +17,7 @@ import { ArrowLeft, Check, EllipsisVertical, Shuffle, SquareCheckBig, X } from '
 import { Routes } from '../../navigation/routes';
 import type { NavOrigin } from '../../navigation/routes';
 import type { Strings } from '../../shared/i18n';
-import { useStrings } from '../../shared/i18n';
+import { useLanguage, useStrings } from '../../shared/i18n';
 import { FollowStar } from '../../shared/components/follow-star';
 import { ScrollToTopButton } from '../../shared/components/scroll-to-top-button';
 import { SelectionBottomBar } from '../../shared/components/selection-bottom-bar';
@@ -51,6 +51,7 @@ export function SerieScreen() {
   const route = useRoute<RouteProp<RouteParams, 'Serie'>>();
   const { seriesId, origin } = route.params ?? {};
   const t = useStrings();
+  const { language } = useLanguage();
 
   const [sortConfigVisible, setSortConfigVisible] = useState(false);
   // The sort modal edits locally and only commits on Save — this holds the in-progress value.
@@ -86,6 +87,7 @@ export function SerieScreen() {
     sortFixedThreshold,
     sortProgressPercent,
     hasSeriesSortOverride,
+    dateStyle,
     selectionMode,
     selectedIds,
     realize,
@@ -177,6 +179,7 @@ export function SerieScreen() {
       <ChapterListItem
         chapter={item}
         title={ChapterTool.format.title(item, t)}
+        dateLabel={ChapterTool.format.date({ chapter: item, style: dateStyle, language, t })}
         index={index}
         selectionMode={selectionMode}
         selected={selectedIds.has(item.id)}
@@ -184,7 +187,7 @@ export function SerieScreen() {
         onLongPress={onChapterLongPress}
       />
     ),
-    [t, selectionMode, selectedIds, handleChapterPress, onChapterLongPress],
+    [t, language, dateStyle, selectionMode, selectedIds, handleChapterPress, onChapterLongPress],
   );
 
   function handleActionPress() {

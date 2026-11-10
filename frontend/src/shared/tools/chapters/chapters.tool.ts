@@ -6,6 +6,7 @@ import type { ContentEvent } from '../../managers/events';
 import { NotificationEvents } from '../../services/notifications';
 import { PreferencesManager } from '../../managers/preferences';
 import type { Strings } from '../../i18n';
+import { DateTool, DATE_STYLES, type DateStyle } from '../date';
 import type { ChapterDigestSuccess, ChapterReadStatus, ImageDescriptor, ServerActiveInfo } from '../../bridge';
 
 // ChapterTool — normalizer/facade for the "chapter" domain: turns a ChapterDigestSuccess into the
@@ -254,6 +255,13 @@ export const ChapterTool = {
       if (num != null) {return t.seriesDetailChapterNumberLabel.replace('{0}', String(num));}
       return t.seriesDetailChapterUntitled;
     },
+
+    // The date shown beside a chapter's name: when the server registered it (`createdUtc`), drawn in
+    // the shape the user chose. Undefined when the chapter has no usable date.
+    date({ chapter, style, language, t }: { chapter: { createdUtc?: string }; style: DateStyle; language: string; t: Strings }): string | undefined {
+      const epochMs = DateTool.parse.to.epochMs(chapter.createdUtc);
+      return epochMs != null && epochMs > 0 ? DateTool.format.to.date({ epochMs, style, language, t }) : undefined;
+    },
   },
 
   mark: {
@@ -431,7 +439,25 @@ function getSortPrefs(scope: ChapterSortScope): Promise<ChapterSortPrefs | (Chap
 // distinct set of concerns (a persisted preference, not a per-chapter domain operation) that
 // happens to live in the same file/module since both are "chapter" domain, per the user's own
 // call.
+const CHAPTER_DATE_PREFS_DOMAIN = 'chapterDatePrefs';
+const CHAPTER_DATE_STYLE_KEY = 'chapterDateStyle';
+export const DEFAULT_CHAPTER_DATE_STYLE: DateStyle = 'LANGUAGE';
+
 export const ChaptersTool = {
+  // The shape of the date beside each chapter. Anything stored that is not a known style reads as
+  // the default.
+  dateStyle: {
+    get(): Promise<DateStyle> {
+      return PreferencesManager.get({ key: CHAPTER_DATE_STYLE_KEY })
+        .then(entry => ((DATE_STYLES as readonly string[]).includes(entry?.value ?? '') ? (entry!.value as DateStyle) : DEFAULT_CHAPTER_DATE_STYLE))
+        .catch(() => DEFAULT_CHAPTER_DATE_STYLE);
+    },
+
+    put({ style }: { style: DateStyle }): Promise<void> {
+      return PreferencesManager.put({ key: CHAPTER_DATE_STYLE_KEY, value: style, domain: CHAPTER_DATE_PREFS_DOMAIN }).then(() => undefined);
+    },
+  },
+
   sort: {
     get: getSortPrefs,
 

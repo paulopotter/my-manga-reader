@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ChaptersTool, type ChapterSortMode } from '../../../shared/tools/chapters';
+import { ChaptersTool, DEFAULT_CHAPTER_DATE_STYLE, type ChapterSortMode } from '../../../shared/tools/chapters';
+import type { DateStyle } from '../../../shared/tools/date';
 import {
   DEFAULT_METADATA_SOURCE_PREFERENCES,
   MetadataSourcesTool,
@@ -86,4 +87,20 @@ export function useMetadataSources() {
   }, []);
 
   return { loading, preferences, changeGlobal, changeField };
+}
+
+// The shape of the date beside each chapter on the serial page: load once, write through on change.
+export function useChapterDateStyle() {
+  const [style, setStyle] = useState<DateStyle>(DEFAULT_CHAPTER_DATE_STYLE);
+
+  useEffect(() => {
+    ChaptersTool.dateStyle.get().then(setStyle).catch(() => {});
+  }, []);
+
+  const change = useCallback((next: DateStyle) => {
+    setStyle(next);
+    ChaptersTool.dateStyle.put({ style: next }).catch(() => {});
+  }, []);
+
+  return { style, change };
 }

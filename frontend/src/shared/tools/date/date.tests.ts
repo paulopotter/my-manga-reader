@@ -98,3 +98,40 @@ describe('DateTool.format.to.relative', () => {
     expect(DateTool.format.to.relative(NOW - 2 * 86_400_000, t)).toBe('há 2 dia(s)');
   });
 });
+
+describe('DateTool.format.to.date', () => {
+  const epochMs = new Date(2026, 10, 8, 12).getTime();
+  const render = (style: Parameters<typeof DateTool.format.to.date>[0]['style'], language = 'pt-BR') =>
+    DateTool.format.to.date({ epochMs, style, language, t });
+
+  it('draws each fixed shape', () => {
+    expect(render('DMY')).toBe('08/11/2026');
+    expect(render('MDY')).toBe('11/08/2026');
+    expect(render('YMD')).toBe('2026-11-08');
+    expect(render('DMY_SHORT')).toBe('08/11/26');
+  });
+
+  it('LANGUAGE puts the day first in Portuguese and the month first otherwise', () => {
+    expect(render('LANGUAGE', 'pt-BR')).toBe('08/11/2026');
+    expect(render('LANGUAGE', 'en')).toBe('11/08/2026');
+  });
+
+  it('RELATIVE reads as time elapsed', () => {
+    const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
+    expect(DateTool.format.to.date({ epochMs: threeDaysAgo, style: 'RELATIVE', language: 'pt-BR', t })).toBe(t.dateDaysAgo.replace('{0}', '3'));
+  });
+
+  it('RELATIVE still reads as time elapsed just under 30 days', () => {
+    const day29 = Date.now() - 29 * 24 * 60 * 60 * 1000;
+    expect(DateTool.format.to.date({ epochMs: day29, style: 'RELATIVE', language: 'pt-BR', t })).toBe(t.dateDaysAgo.replace('{0}', '29'));
+  });
+
+  it('RELATIVE falls back to the language date from 30 days on', () => {
+    const old = Date.now() - 45 * 24 * 60 * 60 * 1000;
+    const d = new Date(old);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const [day, month, year] = [pad(d.getDate()), pad(d.getMonth() + 1), d.getFullYear()];
+    expect(DateTool.format.to.date({ epochMs: old, style: 'RELATIVE', language: 'pt-BR', t })).toBe(`${day}/${month}/${year}`);
+    expect(DateTool.format.to.date({ epochMs: old, style: 'RELATIVE', language: 'en', t })).toBe(`${month}/${day}/${year}`);
+  });
+});

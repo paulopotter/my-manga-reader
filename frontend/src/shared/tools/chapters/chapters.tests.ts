@@ -600,3 +600,42 @@ describe('ChaptersTool.sort', () => {
     });
   });
 });
+
+describe('ChapterTool.format.date', () => {
+  const t = getStrings('pt-BR');
+
+  it('draws the chapter creation date in the chosen style', () => {
+    expect(ChapterTool.format.date({ chapter: { createdUtc: '2026-11-08T15:00:00.000Z' }, style: 'YMD', language: 'pt-BR', t })).toMatch(/^2026-11-0[89]$/);
+  });
+
+  it('is undefined when the chapter has no usable date', () => {
+    expect(ChapterTool.format.date({ chapter: {}, style: 'DMY', language: 'pt-BR', t })).toBeUndefined();
+    expect(ChapterTool.format.date({ chapter: { createdUtc: '0001-01-01T00:00:00' }, style: 'DMY', language: 'pt-BR', t })).toBeUndefined();
+  });
+});
+
+describe('ChaptersTool.dateStyle', () => {
+  beforeEach(() => {
+    mockPrefsGet.mockReset();
+    mockPrefsPut.mockReset().mockResolvedValue(undefined);
+  });
+
+  it('reads a stored style', async () => {
+    mockPrefsGet.mockResolvedValue({ value: 'MDY' });
+    await expect(ChaptersTool.dateStyle.get()).resolves.toBe('MDY');
+  });
+
+  it('falls back to the language default when nothing valid is stored', async () => {
+    mockPrefsGet.mockResolvedValueOnce(null);
+    await expect(ChaptersTool.dateStyle.get()).resolves.toBe('LANGUAGE');
+    mockPrefsGet.mockResolvedValueOnce({ value: 'nonsense' });
+    await expect(ChaptersTool.dateStyle.get()).resolves.toBe('LANGUAGE');
+    mockPrefsGet.mockRejectedValueOnce(new Error('boom'));
+    await expect(ChaptersTool.dateStyle.get()).resolves.toBe('LANGUAGE');
+  });
+
+  it('writes the style under its own key and domain', async () => {
+    await ChaptersTool.dateStyle.put({ style: 'YMD' });
+    expect(mockPrefsPut).toHaveBeenCalledWith({ key: 'chapterDateStyle', value: 'YMD', domain: 'chapterDatePrefs' });
+  });
+});

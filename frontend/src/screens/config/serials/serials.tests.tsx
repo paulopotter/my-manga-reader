@@ -6,15 +6,21 @@ import { findPressableAncestor } from '../../../shared/test-utils/find-pressable
 
 jest.mock('../../../shared/i18n/i18n.hooks', () => ({
   useStrings: () => require('../../../shared/i18n/strings').getStrings('en'),
+  useLanguage: () => ({ language: 'en', setLanguage: () => {} }),
 }));
 
 const mockSortGet = jest.fn();
 const mockSortPut = jest.fn();
+const mockDateStyleGet = jest.fn();
+const mockDateStylePut = jest.fn();
 jest.mock('../../../shared/tools/chapters', () => {
   const actual = jest.requireActual('../../../shared/tools/chapters');
   return {
     ...actual,
-    ChaptersTool: { sort: { get: (...a: unknown[]) => mockSortGet(...a), put: (...a: unknown[]) => mockSortPut(...a) } },
+    ChaptersTool: {
+      sort: { get: (...a: unknown[]) => mockSortGet(...a), put: (...a: unknown[]) => mockSortPut(...a) },
+      dateStyle: { get: (...a: unknown[]) => mockDateStyleGet(...a), put: (...a: unknown[]) => mockDateStylePut(...a) },
+    },
   };
 });
 
@@ -39,13 +45,15 @@ jest.mock('../../../shared/tools/metadata-sources', () => {
 });
 
 import { getStrings } from '../../../shared/i18n/strings';
-import { useMetadataSources, useSerialsSort } from './serials.hooks';
+import { useChapterDateStyle, useMetadataSources, useSerialsSort } from './serials.hooks';
 import { SerialsSortScreen } from './serials.screen';
 
 const t = getStrings('en');
 const PREFS = { mode: 'AUTO_FIXED' as const, fixedThreshold: 100, progressPercent: 70 };
 
 beforeEach(() => {
+    mockDateStyleGet.mockResolvedValue('LANGUAGE');
+    mockDateStylePut.mockResolvedValue(undefined);
     mockPrefsGet.mockResolvedValue({ global: 'enrichment', fields: {} });
     mockPutGlobal.mockResolvedValue({ global: 'enrichment', fields: {} });
     mockPutField.mockResolvedValue({ global: 'enrichment', fields: {} });
@@ -91,6 +99,32 @@ describe('SerialsSortScreen', () => {
     await waitFor(() => expect(getByText(t.configChapterSortGroupTitle)).toBeTruthy());
     fireEvent.press(findPressableAncestor(UNSAFE_getByType(ChevronLeft), TouchableOpacity) as never);
     expect(onBack).toHaveBeenCalled();
+  });
+});
+
+describe('SerialsSortScreen — chapter date format', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockSortGet.mockResolvedValue({ mode: 'ASCENDING', progressPercent: 50 });
+    mockPrefsGet.mockResolvedValue({ global: 'enrichment', fields: {} });
+    mockDateStyleGet.mockResolvedValue('LANGUAGE');
+    mockDateStylePut.mockResolvedValue(undefined);
+  });
+
+  it('shows the date-format section, with the current choice and a sample', async () => {
+    const { findByText } = render(<SerialsSortScreen onBack={jest.fn()} />);
+    expect(await findByText(t.configChapterDateGroupTitle)).toBeTruthy();
+    expect(await findByText(t.configChapterDateRowLabel)).toBeTruthy();
+    expect(await findByText(`${t.configChapterDateFollowLanguage} (11/08/2026)`)).toBeTruthy();
+  });
+
+  it('useChapterDateStyle loads the stored style and writes a change through', async () => {
+    mockDateStyleGet.mockResolvedValue('YMD');
+    const { result } = renderHook(() => useChapterDateStyle());
+    await waitFor(() => expect(result.current.style).toBe('YMD'));
+    act(() => result.current.change('DMY'));
+    expect(result.current.style).toBe('DMY');
+    expect(mockDateStylePut).toHaveBeenCalledWith({ style: 'DMY' });
   });
 });
 

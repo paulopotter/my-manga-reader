@@ -8,9 +8,16 @@ import type { Strings } from '../../i18n';
 //
 // `parse.*` goes FROM a raw string; `format.*` goes TO a presentational form.
 
+// How a date can be drawn. 'LANGUAGE' follows the app language (day first in Portuguese, month
+// first otherwise); the rest are fixed shapes the user can pick; 'RELATIVE' is "há 3 d" up to 30 days, then a plain date.
+export const DATE_STYLES = ['LANGUAGE', 'DMY', 'MDY', 'YMD', 'DMY_SHORT', 'RELATIVE'] as const;
+export type DateStyle = (typeof DATE_STYLES)[number];
+
 const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * HOUR_MS;
+// 'RELATIVE' stops reading "há 45 d" past this age and falls back to the language's calendar date.
+const RELATIVE_LIMIT_MS = 30 * DAY_MS;
 
 // A raw provider date string → a well-formed ISO-UTC string (…SSS'Z'), or undefined when it
 // can't be understood. Handles Kavita's shape: an ISO local date-time, no zone, with a
@@ -92,6 +99,29 @@ export const DateTool = {
         const d = new Date(epochMs);
         const pad = (n: number) => String(n).padStart(2, '0');
         return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      },
+
+      // → a calendar date in the device's local zone, in the shape `style` names. `language` only
+      // matters for 'LANGUAGE'; `t` only for 'RELATIVE' (this tool has no language context).
+      date({ epochMs, style, language, t }: { epochMs: number; style: DateStyle; language: string; t: Strings }): string {
+        const d = new Date(epochMs);
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const [day, month, year] = [pad(d.getDate()), pad(d.getMonth() + 1), d.getFullYear()];
+        // Too old for "há N d" to be useful → the same calendar date 'LANGUAGE' would draw.
+        const tooOld = style === 'RELATIVE' && Date.now() - epochMs >= RELATIVE_LIMIT_MS;
+        const resolved = style === 'LANGUAGE' || tooOld ? (language.toLowerCase().startsWith('pt') ? 'DMY' : 'MDY') : style;
+        switch (resolved) {
+          case 'DMY':
+            return `${day}/${month}/${year}`;
+          case 'MDY':
+            return `${month}/${day}/${year}`;
+          case 'YMD':
+            return `${year}-${month}-${day}`;
+          case 'DMY_SHORT':
+            return `${day}/${month}/${String(year).slice(-2)}`;
+          default:
+            return DateTool.format.to.relative(epochMs, t);
+        }
       },
 
       // → "agora" / "há 5 min" / "há 2 h" / "há 3 d". `t` is injected (this tool is pure, no
