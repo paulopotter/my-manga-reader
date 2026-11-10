@@ -10,7 +10,7 @@ import { IconButton } from '../../../../shared/components/icon-button';
 interface Props {
   seriesName: string;
   chapterTitle: string;
-  // Ready-made progress text shown beside the series name (the reader passes "Cap. 2 de 40") —
+  // Ready-made progress text shown beside the series name (the reader passes "Cap. 2/40") —
   // undefined means the caller has nothing true to show yet.
   pageIndicatorText?: string;
   onBack: () => void;

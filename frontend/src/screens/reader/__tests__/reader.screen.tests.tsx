@@ -241,7 +241,7 @@ describe('ReaderScreen V2 — chapter indicator', () => {
     mockReaderState.currentVisiblePage = 1;
     mockReaderState.order = orderOf(['c1', 'c2', 'c3']);
     const { getByText } = render(<ReaderScreen />);
-    expect(getByText('Cap. 2 de 3')).toBeTruthy();
+    expect(getByText('Cap. 2/3')).toBeTruthy();
   });
 
   it('shows no indicator while the series order is not in yet', () => {
