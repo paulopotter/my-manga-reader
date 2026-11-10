@@ -129,6 +129,8 @@ class FakeCacheDao : CacheDao {
 
 class FakeServerPlugin(
     private val serialsList: List<PluginSerial> = emptyList(),
+    private val chaptersList: List<PluginChapter> = emptyList(),
+    private val chaptersFailure: Exception? = null,
 ) : ServerPlugin {
     override val id = "fake"
     override val displayName = "Fake"
@@ -171,7 +173,7 @@ class FakeServerPlugin(
 
             override val chapters =
                 object : ServerPlugin.Chapters {
-                    override suspend fun list(): List<PluginChapter> = emptyList()
+                    override suspend fun list(): List<PluginChapter> = chaptersFailure?.let { throw it } ?: chaptersList
 
                     override suspend fun setRead(
                         isRead: Boolean,
@@ -226,7 +228,11 @@ fun fakeSerial(
     secondaryColor = null,
 )
 
-fun fakeRegistration(serials: List<PluginSerial> = emptyList()): ServerPluginRegistration =
+fun fakeRegistration(
+    serials: List<PluginSerial> = emptyList(),
+    chapters: List<PluginChapter> = emptyList(),
+    chaptersFailure: Exception? = null,
+): ServerPluginRegistration =
     object : ServerPluginRegistration {
         override val id = "fake"
         override val displayName = "Fake"
@@ -235,6 +241,24 @@ fun fakeRegistration(serials: List<PluginSerial> = emptyList()): ServerPluginReg
             listOf(CredentialField("apiKey", "API Key", "string") { null })
         override val defaultHealthCheckPath = "/health"
         override val factory = { _: RequestTool, _: String, _: String ->
-            FakeServerPlugin(serials) as ServerPlugin
+            FakeServerPlugin(serials, chapters, chaptersFailure) as ServerPlugin
         }
     }
+
+fun fakeChapter(
+    id: String,
+    number: String?,
+    isSpecial: Boolean = false,
+) = PluginChapter(
+    id = id,
+    title = "Chapter $id",
+    number = number,
+    pageCount = 10,
+    pagesRead = 0,
+    isSpecial = isSpecial,
+    decimalNumber = null,
+    specialLabel = null,
+    createdUtc = null,
+    lastReadingProgressUtc = null,
+    fileFormat = null,
+)

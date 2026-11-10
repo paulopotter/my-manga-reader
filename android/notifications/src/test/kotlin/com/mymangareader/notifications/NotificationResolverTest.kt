@@ -71,7 +71,11 @@ class NotificationResolverTest {
         server.setActiveGroup("g1")
     }
 
-    private suspend fun buildResolver(serials: List<PluginSerial> = listOf(fakeSerial("1", "One Piece"))): NotificationResolver {
+    private suspend fun buildResolver(
+        serials: List<PluginSerial> = listOf(fakeSerial("1", "One Piece")),
+        chapters: List<com.mymangareader.server.plugins.PluginChapter> = emptyList(),
+        chaptersFailure: Exception? = null,
+    ): NotificationResolver {
         val groupDao = FakeServerGroupDao()
         val urlDao = FakeServerUrlDao()
         val cache = Cache(FakeCacheDao())
@@ -79,7 +83,7 @@ class NotificationResolverTest {
             Server(
                 groupDao,
                 urlDao,
-                mapOf("fake" to fakeRegistration(serials)),
+                mapOf("fake" to fakeRegistration(serials, chapters, chaptersFailure)),
                 ActiveUrlSelector(OkHttpClient(), cache),
                 RequestTool(OkHttpClient()),
             )
@@ -285,5 +289,68 @@ class NotificationResolverTest {
             preferences.put("scopeFollowedOnly", "true", domain = "notifications")
 
             assertTrue(resolver.shouldNotify(resolvedEvent()))
+        }
+
+    // ── isNewAtEnd ──
+
+    private fun event(
+        numbers: List<String>?,
+        ids: List<String>? = null,
+    ) = ResolvedSeriesEvent(seriesId = "1", seriesName = "One Piece", chapterIds = ids, chapterNumbers = numbers, detectedAtMs = 1_000L)
+
+    private fun hundredChapters() = (1..100).map { fakeChapter("c$it", it.toString()) }
+
+    @Test
+    fun `isNewAtEnd rejeita capitulo que so preenche buraco numa obra que ja tem mais`() =
+        runTest {
+            resolver = buildResolver(chapters = hundredChapters())
+            assertFalse(resolver.isNewAtEnd(event(numbers = listOf("25"), ids = listOf("c25"))))
+        }
+
+    @Test
+    fun `isNewAtEnd aceita capitulo acima do maior que a obra ja tinha`() =
+        runTest {
+            resolver = buildResolver(chapters = (1..40).map { fakeChapter("c$it", it.toString()) } + fakeChapter("c41", "41"))
+            assertTrue(resolver.isNewAtEnd(event(numbers = listOf("41"), ids = listOf("c41"))))
+        }
+
+    @Test
+    fun `isNewAtEnd ignora o proprio capitulo do evento mesmo sem ids, comparando por numero`() =
+        runTest {
+            resolver = buildResolver(chapters = (1..61).map { fakeChapter("c$it", it.toString()) })
+            assertTrue(resolver.isNewAtEnd(event(numbers = listOf("61"))))
+            assertFalse(resolver.isNewAtEnd(event(numbers = listOf("25"))))
+        }
+
+    @Test
+    fun `isNewAtEnd com varios capitulos no evento usa o maior deles`() =
+        runTest {
+            resolver = buildResolver(chapters = hundredChapters() + fakeChapter("c101", "101"))
+            assertTrue(resolver.isNewAtEnd(event(numbers = listOf("25", "101"), ids = listOf("c25", "c101"))))
+        }
+
+    @Test
+    fun `isNewAtEnd notifica quando nao ha o que comparar`() =
+        runTest {
+            resolver = buildResolver(chapters = hundredChapters())
+            assertTrue(resolver.isNewAtEnd(event(numbers = null)))
+            assertTrue(resolver.isNewAtEnd(event(numbers = listOf("Extra"))))
+
+            resolver = buildResolver(chapters = emptyList())
+            assertTrue(resolver.isNewAtEnd(event(numbers = listOf("25"))))
+        }
+
+    @Test
+    fun `isNewAtEnd ignora especiais ao achar o maior capitulo conhecido`() =
+        runTest {
+            resolver = buildResolver(chapters = listOf(fakeChapter("c10", "10"), fakeChapter("s1", "999", isSpecial = true)))
+            assertTrue(resolver.isNewAtEnd(event(numbers = listOf("11"), ids = listOf("c11"))))
+        }
+
+    @Test
+    fun `isNewAtEnd notifica quando o servidor nao consegue listar os capitulos`() =
+        runTest {
+            resolver = buildResolver(chaptersFailure = IllegalStateException("offline"))
+            assertTrue(resolver.isNewAtEnd(event(numbers = listOf("25"), ids = listOf("c25"))))
         }
 }

@@ -84,7 +84,10 @@ class NotificationEventPipelineTest {
         mockServer.shutdown()
     }
 
-    private suspend fun buildPipeline(serials: List<com.mymangareader.server.plugins.PluginSerial> = emptyList()): NotificationEventPipeline {
+    private suspend fun buildPipeline(
+        serials: List<com.mymangareader.server.plugins.PluginSerial> = emptyList(),
+        chapters: List<com.mymangareader.server.plugins.PluginChapter> = emptyList(),
+    ): NotificationEventPipeline {
         val groupDao = FakeServerGroupDao()
         val urlDao = FakeServerUrlDao()
         val cache = Cache(FakeCacheDao())
@@ -92,7 +95,7 @@ class NotificationEventPipelineTest {
             Server(
                 groupDao,
                 urlDao,
-                mapOf("fake" to fakeRegistration(serials)),
+                mapOf("fake" to fakeRegistration(serials, chapters)),
                 ActiveUrlSelector(OkHttpClient(), cache),
                 RequestTool(OkHttpClient()),
             )
@@ -174,5 +177,31 @@ class NotificationEventPipelineTest {
             pipeline.handle(RawNotificationEvent(seriesId = "2", seriesName = "B", chapterIds = null, chapterNumbers = null, detectedAtMs = 2_000L))
 
             assertEquals(listOf("1", "2"), poster.posted.map { it.seriesId })
+        }
+
+    @Test
+    fun `evento de capitulo antigo numa obra mais longa nunca chega ao poster`() =
+        runTest {
+            pipeline = buildPipeline(chapters = (1..100).map { fakeChapter("c$it", it.toString()) })
+            preferences.put("scopeAll", "true", domain = "notifications")
+
+            pipeline.handle(
+                RawNotificationEvent(seriesId = "42", seriesName = "One Piece", chapterIds = listOf("c25"), chapterNumbers = listOf("25"), detectedAtMs = 1_000L),
+            )
+
+            assertTrue(poster.posted.isEmpty())
+        }
+
+    @Test
+    fun `evento de capitulo novo no final da obra chega ao poster`() =
+        runTest {
+            pipeline = buildPipeline(chapters = (1..101).map { fakeChapter("c$it", it.toString()) })
+            preferences.put("scopeAll", "true", domain = "notifications")
+
+            pipeline.handle(
+                RawNotificationEvent(seriesId = "42", seriesName = "One Piece", chapterIds = listOf("c101"), chapterNumbers = listOf("101"), detectedAtMs = 1_000L),
+            )
+
+            assertEquals(1, poster.posted.size)
         }
 }

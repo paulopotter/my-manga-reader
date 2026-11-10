@@ -6,6 +6,7 @@ import com.mymangareader.core.database.FollowedSeriesDao
 import com.mymangareader.notifications.plugins.RawNotificationEvent
 import com.mymangareader.preferences.Preferences
 import com.mymangareader.server.Server
+import kotlinx.coroutines.CancellationException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -128,6 +129,42 @@ class NotificationResolver
                     "scopeFollowedOnly enabled, followed=$followed",
             )
             return followed
+        }
+
+        // Whether the event brings a chapter at the END of the series — a number above the highest one the
+        // series already had on the server. A chapter that only fills a gap (chapter 25 turning up in a
+        // series that already has 100) is old news and not worth a notification. The series' own chapters
+        // that the event announces are left out of the comparison (by id and by number), since by the
+        // time the event arrives the server already lists them.
+        //
+        // Fails open: nothing to compare (no numeric chapter number in the event, no other numbered
+        // chapter on the server, a special) or a server that cannot be asked → true, so a notification
+        // is never lost to this check.
+        suspend fun isNewAtEnd(resolved: ResolvedSeriesEvent): Boolean {
+            val eventNumbers = resolved.chapterNumbers.orEmpty().mapNotNull { it.toDoubleOrNull() }
+            if (eventNumbers.isEmpty()) return true
+            val eventIds = resolved.chapterIds.orEmpty().toSet()
+            val knownHighest =
+                try {
+                    server
+                        .serial(resolved.seriesId)
+                        .chapters
+                        .list()
+                        .data
+                        .asSequence()
+                        .filter { it.isSpecial != true && it.id !in eventIds }
+                        .mapNotNull { it.decimalNumber ?: it.number?.toDoubleOrNull() }
+                        .filter { it !in eventNumbers }
+                        .maxOrNull()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.w(TAG, "isNewAtEnd() — could not list chapters of seriesId=${resolved.seriesId}, notifying anyway: ${e.message}")
+                    return true
+                } ?: return true
+            val atEnd = eventNumbers.max() > knownHighest
+            Log.i(TAG, "isNewAtEnd() — seriesId=${resolved.seriesId} event=${eventNumbers.max()} knownHighest=$knownHighest atEnd=$atEnd")
+            return atEnd
         }
 
         private suspend fun readFlag(key: String): Boolean = preferences.get(key)?.value == "true"

@@ -9,7 +9,7 @@ private const val TAG = "NotificationEventPipeline"
 
 /**
  * The one place a raw plugin event turns into (or doesn't turn into) a posted notification —
- * `resolve` → `shouldNotify` → `post`, exactly once per event, never duplicated inline inside
+ * `resolve` → `shouldNotify` → `isNewAtEnd` → `post`, exactly once per event, never duplicated inline inside
  * [com.mymangareader.NotificationConnectionService] (`android/app/`, Task 006). Extracted as its
  * own class specifically so this orchestration is testable with fakes, without needing a real
  * Android `Service` under Robolectric.
@@ -30,11 +30,15 @@ class NotificationEventPipeline
                 return
             }
 
-            if (resolver.shouldNotify(resolved)) {
-                Log.i(TAG, "handle() — posting notification for seriesId=${resolved.seriesId}")
-                poster.post(resolved)
-            } else {
+            if (!resolver.shouldNotify(resolved)) {
                 Log.i(TAG, "handle() — event resolved but not posted (out of notification scope): seriesId=${resolved.seriesId}")
+                return
             }
+            if (!resolver.isNewAtEnd(resolved)) {
+                Log.i(TAG, "handle() — event resolved but not posted (not at the end of the series): seriesId=${resolved.seriesId}")
+                return
+            }
+            Log.i(TAG, "handle() — posting notification for seriesId=${resolved.seriesId}")
+            poster.post(resolved)
         }
     }
