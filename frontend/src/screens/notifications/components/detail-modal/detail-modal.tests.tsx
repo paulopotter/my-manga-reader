@@ -12,10 +12,12 @@ const baseProps = {
   chapterNumbers: [],
   read: false,
   goToSeriesLabel: 'Ir para a série',
+  markReadLabel: 'Marcar como lido',
   markUnreadLabel: 'Marcar como não lido',
   deleteLabel: 'Excluir',
   closeLabel: 'Fechar',
   onGoToSeries: jest.fn(),
+  onMarkRead: jest.fn(),
   onMarkUnread: jest.fn(),
   onDelete: jest.fn(),
   onClose: jest.fn(),
@@ -41,12 +43,21 @@ describe('DetailModal', () => {
     expect(queryByText(baseProps.chaptersTitle)).toBeNull();
   });
 
-  it('shows the mark-unread action only when the row is read', () => {
+  it('shows mark-unread when the row is read and mark-read when it is not', () => {
     const { queryByText, rerender } = render(<DetailModal {...baseProps} read={false} />);
     expect(queryByText(baseProps.markUnreadLabel)).toBeNull();
+    expect(queryByText(baseProps.markReadLabel)).toBeTruthy();
 
     rerender(<DetailModal {...baseProps} read />);
     expect(queryByText(baseProps.markUnreadLabel)).toBeTruthy();
+    expect(queryByText(baseProps.markReadLabel)).toBeNull();
+  });
+
+  it('calls onMarkRead from its own button', () => {
+    const onMarkRead = jest.fn();
+    const { getByText } = render(<DetailModal {...baseProps} read={false} onMarkRead={onMarkRead} />);
+    fireEvent.press(getByText(baseProps.markReadLabel));
+    expect(onMarkRead).toHaveBeenCalledTimes(1);
   });
 
   it('calls onGoToSeries, onDelete and onClose from their own buttons', () => {

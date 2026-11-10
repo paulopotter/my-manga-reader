@@ -14,10 +14,12 @@ export interface DetailModalProps {
   coverUrl?: string;
   read: boolean;
   goToSeriesLabel: string;
+  markReadLabel: string;
   markUnreadLabel: string;
   deleteLabel: string;
   closeLabel: string;
   onGoToSeries: () => void;
+  onMarkRead: () => void;
   onMarkUnread: () => void;
   onDelete: () => void;
   onClose: () => void;
@@ -26,8 +28,9 @@ export interface DetailModalProps {
 // The notification history's own "more information" popup — full series name (no truncation),
 // the cover in bigger form, the exact timestamp (the list row only shows a relative one), every
 // chapter number a collapsed group stands for, and the same actions the row already offers
-// (repeated here for convenience, per the user's own request) plus mark-as-unread, which the
-// list row doesn't expose directly (only via long-press selection).
+// (repeated here for convenience, per the user's own request) plus mark-as-read / mark-as-unread
+// (whichever applies to the row's state), which the list row doesn't expose directly (only via
+// long-press selection).
 export function DetailModal({
   visible,
   title,
@@ -39,10 +42,12 @@ export function DetailModal({
   coverUrl,
   read,
   goToSeriesLabel,
+  markReadLabel,
   markUnreadLabel,
   deleteLabel,
   closeLabel,
   onGoToSeries,
+  onMarkRead,
   onMarkUnread,
   onDelete,
   onClose,
@@ -80,9 +85,13 @@ export function DetailModal({
             <Pressable style={[styles.actionBtn, styles.actionBtnSecondary]} onPress={onGoToSeries}>
               <Text style={styles.actionLabelSecondary}>{goToSeriesLabel}</Text>
             </Pressable>
-            {read && (
+            {read ? (
               <Pressable style={[styles.actionBtn, styles.actionBtnSecondary]} onPress={onMarkUnread}>
                 <Text style={styles.actionLabelSecondary}>{markUnreadLabel}</Text>
+              </Pressable>
+            ) : (
+              <Pressable style={[styles.actionBtn, styles.actionBtnSecondary]} onPress={onMarkRead}>
+                <Text style={styles.actionLabelSecondary}>{markReadLabel}</Text>
               </Pressable>
             )}
             <Pressable style={[styles.actionBtn, styles.actionBtnDanger]} onPress={onDelete}>

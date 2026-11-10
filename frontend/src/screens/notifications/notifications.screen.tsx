@@ -193,12 +193,18 @@ export function NotificationsScreen() {
           coverUrl={detailRow.coverUrl}
           read={detailRow.read}
           goToSeriesLabel={t.notificationsHistoryDetailGoToSeries}
+          markReadLabel={t.notificationsHistoryDetailMarkRead}
           markUnreadLabel={t.notificationsHistoryDetailMarkUnread}
           deleteLabel={t.notificationsHistoryDetailDelete}
           closeLabel={t.notificationsHistoryDetailClose}
           onGoToSeries={() => {
             goToSeries(detailRow);
             setDetailRow(null);
+          }}
+          onMarkRead={async () => {
+            const row = detailRow;
+            setDetailRow(null);
+            await markRead(row.ids);
           }}
           onMarkUnread={async () => {
             const row = detailRow;

@@ -293,6 +293,17 @@ describe('NotificationsScreen', () => {
     expect(queryByText(t.notificationsHistoryDetailTitle)).toBeNull();
   });
 
+  it('"mark read" from the detail popup calls markRead with the row\'s ids and closes it', async () => {
+    const markRead = jest.fn().mockResolvedValue(undefined);
+    mockUseNotificationHistory.mockReturnValue(historyHook({ rows: [row({ read: false })], totalCount: 1, markRead }));
+    const { getByLabelText, getByText, queryByText } = render(<NotificationsScreen />);
+    fireEvent.press(getByLabelText(t.notificationsHistoryInfo));
+    fireEvent.press(getByText(t.notificationsHistoryDetailMarkRead));
+    await Promise.resolve();
+    expect(markRead).toHaveBeenCalledWith(['h1']);
+    expect(queryByText(t.notificationsHistoryDetailTitle)).toBeNull();
+  });
+
   it('deleting from the detail popup opens the confirm dialog and closes the detail popup', () => {
     mockUseNotificationHistory.mockReturnValue(historyHook({ rows: [row()], totalCount: 1 }));
     const { getByLabelText, getByText, queryByText } = render(<NotificationsScreen />);
