@@ -105,7 +105,11 @@ function AppContent() {
   // que podia vir desatualizado/0 se o layout nativo ainda não tivesse se estabilizado quando o
   // JS montou, deixando o conteúdo atrás da barra de notificação até o próximo reload do app.
   const insets = useSafeAreaInsets();
-  const { immersive } = useImmersive();
+  const { immersive, setTopInset } = useImmersive();
+  // Immersive zeroes the native insets, so keep the last real value for screens drawing behind the cutout.
+  useEffect(() => {
+    if (!immersive) { setTopInset(insets.top); }
+  }, [immersive, insets.top, setTopInset]);
   // Immersive (the Reader, when its immersive-mode pref is on) draws edge-to-edge, behind the
   // status bar and the cutout — so drop the root paddingTop the other screens want. When the
   // Reader is open but immersive is off, the padding stays and the status bar area is respected.

@@ -8,21 +8,34 @@ import React, { createContext, useCallback, useContext, useMemo, useState } from
 //
 // This is a tiny UI-shell flag, deliberately its own context (not folded into StartupContext,
 // which is about boot state). A future full-bleed screen (a video player, say) can set it too.
+//
+// `topInset` is the real height of the status bar / cutout area, measured by App.tsx while NOT
+// immersive. Immersive zeroes the system insets natively, so a screen that draws behind the cutout
+// (the Reader's header) reads the last real value from here to keep its content below the camera.
 
 interface ImmersiveState {
   immersive: boolean;
   setImmersive: (value: boolean) => void;
+  topInset: number;
+  setTopInset: (value: number) => void;
 }
 
 const ImmersiveContext = createContext<ImmersiveState>({
   immersive: false,
   setImmersive: () => {},
+  topInset: 0,
+  setTopInset: () => {},
 });
 
 export function ImmersiveProvider({ children }: { children: React.ReactNode }) {
   const [immersive, setImmersiveState] = useState(false);
   const setImmersive = useCallback((value: boolean) => setImmersiveState(value), []);
-  const value = useMemo(() => ({ immersive, setImmersive }), [immersive, setImmersive]);
+  const [topInset, setTopInsetState] = useState(0);
+  const setTopInset = useCallback((value: number) => setTopInsetState(value), []);
+  const value = useMemo(
+    () => ({ immersive, setImmersive, topInset, setTopInset }),
+    [immersive, setImmersive, topInset, setTopInset],
+  );
   return <ImmersiveContext.Provider value={value}>{children}</ImmersiveContext.Provider>;
 }
 

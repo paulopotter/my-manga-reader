@@ -19,6 +19,15 @@ describe('ImmersiveProvider / useImmersive', () => {
     const { result } = renderHook(() => useImmersive());
     expect(result.current.immersive).toBe(false);
     act(() => result.current.setImmersive(true));
+    act(() => result.current.setTopInset(38));
     expect(result.current.immersive).toBe(false);
+    expect(result.current.topInset).toBe(0);
+  });
+
+  it('keeps the top inset it was given, defaulting to 0', () => {
+    const { result } = renderHook(() => useImmersive(), { wrapper: ImmersiveProvider });
+    expect(result.current.topInset).toBe(0);
+    act(() => result.current.setTopInset(38));
+    expect(result.current.topInset).toBe(38);
   });
 });

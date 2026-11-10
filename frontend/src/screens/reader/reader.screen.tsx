@@ -4,6 +4,7 @@ import { useRoute, RouteProp } from '@react-navigation/native';
 import { ArrowLeft } from 'lucide-react-native';
 import { Routes, type NavOrigin } from '../../navigation/routes';
 import { useStrings } from '../../shared/i18n';
+import { useImmersive } from '../../shared/context/immersive';
 import { buildPageLoadingNode, buildPageErrorNode } from './reader-sdu';
 import { createNavigateAction, useAction } from '../../shared/tools/actions';
 import { ChapterTool } from '../../shared/tools/chapters';
@@ -24,7 +25,7 @@ import { readerStyles } from './reader.styles';
 import { useTheme, useStyles } from '../../shared/context';
 import { icon } from '../../shared/theme';
 import { ReaderPrefs, type ProgressBarPosition } from '../../shared/tools/reader';
-import { STATUS_BAR_GAP, statusBarHeight } from './components/reader-top-bar/reader-top-bar.styles';
+import { STATUS_BAR_GAP } from './components/reader-top-bar/reader-top-bar.styles';
 import { ThinProgressBar } from '../../shared/components/thin-progress-bar';
 
 type RouteParams = {
@@ -40,6 +41,7 @@ export function ReaderScreen() {
   const route = useRoute<RouteProp<RouteParams, 'Reader'>>();
   const { seriesId, chapterId, seriesName } = route.params ?? {};
   const t = useStrings();
+  const { topInset } = useImmersive();
 
   const reader = useReader(seriesId, chapterId, seriesName);
   const { realize } = useAction();
@@ -115,7 +117,7 @@ export function ReaderScreen() {
       return (
         <View style={styles.centered}>
           <Pressable
-            style={[styles.errorBack, { paddingTop: statusBarHeight + STATUS_BAR_GAP }]}
+            style={[styles.errorBack, { paddingTop: topInset + STATUS_BAR_GAP }]}
             onPress={handleBack}
             accessibilityRole="button"
             accessibilityLabel={t.commonBackLabel}>

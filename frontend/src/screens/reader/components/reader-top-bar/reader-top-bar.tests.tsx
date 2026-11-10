@@ -1,6 +1,8 @@
 import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
 import { ReaderTopBar } from './reader-top-bar.component';
+import { ImmersiveProvider, useImmersive } from '../../../../shared/context/immersive';
+import { STATUS_BAR_GAP } from './reader-top-bar.styles';
 
 function setup(over: Partial<React.ComponentProps<typeof ReaderTopBar>> = {}) {
   const onBack = jest.fn();
@@ -48,5 +50,22 @@ describe('ReaderTopBar', () => {
 
   it('leaves the series name plain when there is nowhere to go', () => {
     expect(setup().queryByRole('link')).toBeNull();
+  });
+
+  it('pads the top by the measured inset plus the gap, so the title clears the camera', () => {
+    function Seed() {
+      const { setTopInset } = useImmersive();
+      React.useEffect(() => setTopInset(40), [setTopInset]);
+      return null;
+    }
+    const { UNSAFE_getAllByType } = render(
+      <ImmersiveProvider>
+        <Seed />
+        <ReaderTopBar seriesName="One Piece" chapterTitle="Capítulo 1" onBack={jest.fn()} backLabel="Voltar" visible />
+      </ImmersiveProvider>,
+    );
+    const { View, StyleSheet } = require('react-native');
+    const root = StyleSheet.flatten(UNSAFE_getAllByType(View)[0].props.style);
+    expect(root.paddingTop).toBe(40 + STATUS_BAR_GAP);
   });
 });

@@ -1,9 +1,10 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
-import { STATUS_BAR_GAP, statusBarHeight, readerTopBarStyles } from './reader-top-bar.styles';
+import { STATUS_BAR_GAP, readerTopBarStyles } from './reader-top-bar.styles';
 import { useTheme, useStyles } from '../../../../shared/context';
 import { icon } from '../../../../shared/theme';
+import { useImmersive } from '../../../../shared/context/immersive';
 import { IconButton } from '../../../../shared/components/icon-button';
 
 interface Props {
@@ -25,10 +26,11 @@ interface Props {
 export function ReaderTopBar({ seriesName, chapterTitle, pageIndicatorText, onBack, backLabel, onSeriesPress, seriesLabel, visible }: Props) {
   const { colors } = useTheme();
   const styles = useStyles(readerTopBarStyles);
+  const { topInset } = useImmersive();
   if (!visible) {return null;}
 
   return (
-    <View style={[styles.root, { paddingTop: statusBarHeight + STATUS_BAR_GAP }]}>
+    <View style={[styles.root, { paddingTop: topInset + STATUS_BAR_GAP }]}>
       <IconButton
         icon={ChevronLeft}
         glyph="chevron"

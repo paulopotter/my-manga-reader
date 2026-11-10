@@ -1,10 +1,8 @@
 import { createStyles } from '../../../../shared/theme';
-import { Platform, StatusBar } from 'react-native';
 
-// Gap between the status bar and the series name — the header sits right under it (exact status
-// bar distance, not a device-dependent guess).
+// Gap between the status bar / cutout and the series name — the header sits right under it. The
+// bar/cutout height itself comes from useImmersive().topInset (real insets, not a device guess).
 export const STATUS_BAR_GAP = 6;
-export const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 44;
 
 export const readerTopBarStyles = createStyles(({ colors, text, spacing, alpha }) => {
   // A text shadow (native to RN, no gradient lib needed) — legible over any page image behind
