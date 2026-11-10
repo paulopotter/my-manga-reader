@@ -10,6 +10,18 @@ Kotlin and RN bundle versions follow Semantic Versioning independently.
 
 ## [Unreleased]
 
+### Backend
+- feat: notificação de capítulo novo só dispara quando ele passa do maior capítulo que a obra já tinha no servidor (capítulo antigo que chega depois não notifica)
+- feat: telemetria local de memória, CPU e bateria gravada em arquivo, incluída na exportação da tela de debug
+
+### Frontend
+- feat: toque longo em "Continuar lendo" e "Ainda não terminei" abre um menu com "ir para a obra" e "esconder", com confirmação antes de esconder
+- feat: trilhos da Home configuráveis em Ajustes: "Novas na biblioteca" sem obras seguidas ou em leitura e só da janela de dias escolhida (padrão 7), "Atualizadas recentemente" sem obras já lidas por completo e "Seguidas atualizadas" só com capítulo novo no final
+- feat: botão "Marcar como lido" no detalhe da notificação
+- feat: data em cada capítulo da página da obra, com formato configurável nos Ajustes da página do mangá (padrão do idioma, formatos fixos ou relativo que vira data depois de 30 dias)
+- fix: Ajustes volta ao menu inicial depois de 10 segundos fora da aba, em vez de reabrir no subnível anterior
+- feat: cabeçalho do leitor passa de "Cap. X de Y" para "Cap. X/Y"
+
 ## [[2026.11.10.1519](https://github.com/paulopotter/my-manga-reader/releases/tag/2026.11.10.1519)] - 2026-11-10
 
 O cabeçalho do leitor agora respeita o entalhe da tela e não fica mais escondido pela câmera quando o modo imersivo está ativado. / The reader header now respects the screen notch and is no longer hidden behind the camera when immersive mode is turned on.
