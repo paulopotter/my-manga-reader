@@ -1,7 +1,8 @@
 .PHONY: setup build-android build-bundle build-all deploy log server help \
         ota-none ota-required ota-highly-recommended ota-recommended \
         coverage coverage-kotlin coverage-js \
-        kill redeploy-log screenshots emulator emulator-stop check-screenshots pair
+        kill redeploy-log screenshots emulator emulator-stop check-screenshots pair \
+        metrics metrics-report metrics-compare
 
 APP_PACKAGE  := com.mymangareader
 APP_ACTIVITY := .MainActivity
@@ -27,6 +28,9 @@ MSG_EMULATOR             := Sobe o emulador dos screenshots da documentação (H
 MSG_EMULATOR_STOP        := Desliga o emulador dos screenshots
 MSG_PAIR                 := Pareia o celular com o adb por QR code (depuração sem fio)
 MSG_SCREENSHOTS          := Tira os screenshots da documentação via adb (ONLY=nome, EMULATOR=1, THEMES=1 ou SERIAL=...)
+MSG_METRICS              := Puxa métricas/logs do app do celular para metrics/<data>/ e mostra o relatório
+MSG_METRICS_REPORT       := Relatório de uma coleta já salva (DIR=metrics/<data>, padrão: a mais nova)
+MSG_METRICS_COMPARE      := Compara duas coletas (A=... B=..., padrão: as duas mais novas)
 MSG_SERVER               := Levanta servidor OTA local na porta 8080 (adb reverse incluso)
 MSG_KILL                 := Force-stop do app no dispositivo (sem desinstalar)
 MSG_REDEPLOY_LOG         := Build + kill + deploy + log, salvando em /tmp/reader-log-vN.txt
@@ -66,6 +70,9 @@ MSG_EMULATOR             := Boot the docs-screenshots emulator (HEADLESS=1 for n
 MSG_EMULATOR_STOP        := Shut the docs-screenshots emulator down
 MSG_PAIR                 := Pair the phone with adb by QR code (wireless debugging)
 MSG_SCREENSHOTS          := Take the docs screenshots over adb (ONLY=name, EMULATOR=1, THEMES=1 or SERIAL=...)
+MSG_METRICS              := Pull app metrics/logs from the phone into metrics/<date>/ and print the report
+MSG_METRICS_REPORT       := Report for an already saved pull (DIR=metrics/<date>, default: the newest)
+MSG_METRICS_COMPARE      := Compare two pulls (A=... B=..., default: the two newest)
 MSG_SERVER               := Start local OTA server on port 8080 (adb reverse included)
 MSG_KILL                 := Force-stop the app on device (no uninstall)
 MSG_REDEPLOY_LOG         := Build + kill + deploy + log, saved to /tmp/reader-log-vN.txt
@@ -107,6 +114,9 @@ help: ## help
 	@printf "  \033[36m%-26s\033[0m %s\n" "emulator-stop"           "$(MSG_EMULATOR_STOP)"
 	@printf "  \033[36m%-26s\033[0m %s\n" "pair"                    "$(MSG_PAIR)"
 	@printf "  \033[36m%-26s\033[0m %s\n" "redeploy-log"            "$(MSG_REDEPLOY_LOG)"
+	@printf "  \033[36m%-26s\033[0m %s\n" "metrics"                 "$(MSG_METRICS)"
+	@printf "  \033[36m%-26s\033[0m %s\n" "metrics-report"          "$(MSG_METRICS_REPORT)"
+	@printf "  \033[36m%-26s\033[0m %s\n" "metrics-compare"         "$(MSG_METRICS_COMPARE)"
 	@printf "  \033[36m%-26s\033[0m %s\n" "server"                  "$(MSG_SERVER)"
 	@printf "  \033[36m%-26s\033[0m %s\n" "ota-none"                "$(MSG_OTA_NONE)"
 	@printf "  \033[36m%-26s\033[0m %s\n" "ota-required"            "$(MSG_OTA_REQUIRED)"
@@ -206,6 +216,26 @@ redeploy-log: ## $(MSG_REDEPLOY_LOG)
 	X=$$(( $$(cat /tmp/counter.txt 2>/dev/null || echo 0) + 1 )); \
 	($(MAKE) build-all && $(MAKE) kill && $(MAKE) deploy && $(MAKE) log) 2>&1 | tee /tmp/reader-log-v$${X}.txt; \
 	echo $$X > /tmp/counter.txt
+
+METRICS_DIR := metrics
+
+metrics: ## $(MSG_METRICS)
+	@scripts/metrics-pull.sh $(APP_PACKAGE) $(METRICS_DIR)
+
+metrics-report: ## $(MSG_METRICS_REPORT)
+	@D="$(DIR)"; [ -n "$$D" ] || D=$$(ls -d $(METRICS_DIR)/*/ 2>/dev/null | sort | tail -1); \
+	[ -n "$$D" ] || { echo "✗ Nenhuma coleta em $(METRICS_DIR)/ — rode make metrics"; exit 1; }; \
+	python3 -I scripts/metrics-report.py report "$${D%/}"
+
+metrics-compare: ## $(MSG_METRICS_COMPARE)
+	@A="$(A)"; B="$(B)"; \
+	if [ -z "$$A" ] || [ -z "$$B" ]; then \
+	  set -- $$(ls -d $(METRICS_DIR)/*/ 2>/dev/null | sort | tail -2); \
+	  [ $$# -eq 2 ] || { echo "✗ Preciso de 2 coletas em $(METRICS_DIR)/ (ou A=... B=...)"; exit 1; }; \
+	  A=$$1; B=$$2; \
+	fi; \
+	echo "A (antes):  $${A%/}"; echo "B (depois): $${B%/}"; echo; \
+	python3 -I scripts/metrics-report.py compare "$${A%/}" "$${B%/}"
 
 server: ## $(MSG_SERVER)
 	@scripts/ota-local-server.sh

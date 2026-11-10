@@ -8,6 +8,7 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.mymangareader.tools.diagnostics.DiagnosticLog
+import com.mymangareader.tools.diagnostics.MetricsLog
 import java.io.File
 
 // RN→Kotlin bridge for the local diagnostics file (DiagnosticLog): where it is, how big, the adb
@@ -36,11 +37,13 @@ class DiagnosticsBridgeModule(
             val directory = diagnosticsDirectory(context)
             // One file with both generations, in the order the lines were written.
             val export = File(directory, EXPORT_FILE_NAME).also { it.writeText(DiagnosticLog.readAll()) }
-            val uri = FileProvider.getUriForFile(context, "${context.packageName}.diagnostics", export)
+            val metrics = File(directory, METRICS_EXPORT_FILE_NAME).also { it.writeText(MetricsLog.readAll()) }
+            val uris =
+                arrayListOf(export, metrics).map { FileProvider.getUriForFile(context, "${context.packageName}.diagnostics", it) }
             val send =
-                Intent(Intent.ACTION_SEND).apply {
+                Intent(Intent.ACTION_SEND_MULTIPLE).apply {
                     type = "text/plain"
-                    putExtra(Intent.EXTRA_STREAM, uri)
+                    putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(uris))
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
             val chooser = Intent.createChooser(send, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -52,13 +55,16 @@ class DiagnosticsBridgeModule(
     fun clearLog(promise: Promise) {
         runCatching {
             DiagnosticLog.clear()
+            MetricsLog.clear()
             File(diagnosticsDirectory(context), EXPORT_FILE_NAME).delete()
+            File(diagnosticsDirectory(context), METRICS_EXPORT_FILE_NAME).delete()
             Unit
         }.resolveOrReject(promise, "DIAGNOSTICS_CLEAR_ERROR")
     }
 
     companion object {
         const val EXPORT_FILE_NAME = "app-diagnostics-export.txt"
+        const val METRICS_EXPORT_FILE_NAME = "app-metrics-export.txt"
 
         // `adb pull` works for the external dir on every build; the private dir needs run-as, which
         // only works on debuggable builds.

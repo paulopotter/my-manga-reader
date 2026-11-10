@@ -253,11 +253,14 @@ class MainApplication :
                 "sdk=${android.os.Build.VERSION.SDK_INT} device=${android.os.Build.MODEL} ${describeMemory()}",
         )
         LogcatCapture.start()
+        AppMetrics.init(this)
+        AppMetrics.record("start")
         applicationScope.launch { ProcessExits.recordPrevious(this@MainApplication, directory) }
         applicationScope.launch {
             while (true) {
                 delay(MEMORY_SAMPLE_INTERVAL_MS)
                 DiagnosticLog.event("Memory", describeMemory())
+                AppMetrics.record("periodic")
             }
         }
     }
@@ -269,6 +272,7 @@ class MainApplication :
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
         DiagnosticLog.event("Memory", "onTrimMemory level=$level ${describeMemory()}")
+        AppMetrics.record("trim")
         if (level >= TRIM_MEMORY_UI_HIDDEN) {
             coil.Coil.imageLoader(this).memoryCache?.clear()
         }

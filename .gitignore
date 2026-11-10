@@ -74,6 +74,9 @@ android/build/reports/kover/
 android/app/src/main/res/drawable-*/src_assets_*
 android/app/src/main/res/drawable-*/node_modules_*
 
+# Coletas de métricas puxadas do celular (make metrics) — podem ter dados do aparelho
+/metrics/
+
 # Misc
 *.log
 *.tmp

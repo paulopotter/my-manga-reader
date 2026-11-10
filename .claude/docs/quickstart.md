@@ -20,6 +20,15 @@ make deploy
 # Stream app logs
 make log
 
+# Pull the app's own metrics (memory / CPU / battery / app state, every 5 min) + crash log +
+# the system's dumpsys meminfo/batterystats into metrics/<date>/ (gitignored), then print the report.
+# Needs a build that has the collector. Meant to be run after hours of normal use, then again
+# after a change, so the two can be compared.
+make metrics
+make metrics-report                   # re-read a saved pull (DIR=metrics/<date>, default newest)
+make metrics-compare                  # two newest pulls side by side (A=... B=... to choose)
+python3 scripts/metrics-report.tests.py
+
 # Run Android unit tests
 cd android && ./gradlew test
 

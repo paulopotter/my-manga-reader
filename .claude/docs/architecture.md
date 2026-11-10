@@ -149,6 +149,18 @@ build timestamps, not version strings), `datetime/IsoDateTime.kt`, `cache/Backgr
 (generic fire-and-forget over `Cache`), `bridge/ConfigRepository.kt` + `ConfigStore.kt` (legacy
 config bridge — server/auth/BFF; the `*UiPreferences*` methods were removed in Task 039).
 
+**Diagnostics** (`tools/diagnostics/`) — two local files in the app's external `diagnostics/` dir,
+both rotated (2 × 512 KB), nothing leaves the device: `DiagnosticLog` → `app-diagnostics.log`
+(human-readable: crash stack traces, `ProcessExits` = why Android says the previous process ended,
+`[Memory]` lines, filtered logcat) and `MetricsLog` → `app-metrics.jsonl` (one `MetricsSample` per
+line: memory, CPU time, battery %, charging, screen on, foreground, notification service running,
+threads). `MetricsCollector` reads the phone; `:app`'s `AppMetrics` fills in the app state and says
+*when* (`start`, `periodic` every 5 min, `trim`, `crash` — written by `CrashGuard`). A file, not a
+Room table, on purpose: a metrics bug can never touch the database. `make metrics` pulls both
+files (+ the system's `dumpsys meminfo/batterystats`) to `metrics/<date>/` and
+`scripts/metrics-report.py` summarises per app state or compares two pulls. Battery numbers are
+the *phone's* drop in that state — an upper bound for the app, not its share.
+
 ### `:server` — Layer 1 + 2 (content-server abstraction)
 
 Replaces `KavitaSeriesFeature` / `KavitaChapterFeature` / `KavitaUrlSelector` / `KavitaAuthFeature`.
