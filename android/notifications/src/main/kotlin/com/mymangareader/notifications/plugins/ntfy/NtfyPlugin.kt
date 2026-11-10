@@ -24,7 +24,6 @@ import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import java.util.concurrent.TimeUnit
-import kotlin.math.min
 import kotlin.math.pow
 
 private val json = Json { ignoreUnknownKeys = true }
@@ -105,7 +104,7 @@ class NtfyPlugin : NotificationPlugin {
     private fun scheduleReconnect() {
         if (intentionalClose) return
         val url = currentUrl ?: return
-        val delayMs = min(INITIAL_BACKOFF_MS * 2.0.pow(reconnectAttempts).toLong(), MAX_BACKOFF_MS)
+        val delayMs = ntfyReconnectDelayMs(reconnectAttempts)
         reconnectAttempts++
         Log.d(TAG, "scheduleReconnect() — attempt=$reconnectAttempts delayMs=$delayMs topic=${url.topic}")
         scope.launch {
@@ -186,6 +185,14 @@ class NtfyPlugin : NotificationPlugin {
         override val version: String = "1.0"
         override val factory: () -> NotificationPlugin = { NtfyPlugin() }
     }
+}
+
+// The exponential term stays a Double until AFTER it is compared with the cap: converting it to Long
+// first and multiplying by INITIAL_BACKOFF_MS overflowed from attempt 54 on (a negative delay =
+// reconnecting with no pause at all — thousands of sockets per hour during a long outage).
+internal fun ntfyReconnectDelayMs(attempt: Int): Long {
+    val exponentialMs = INITIAL_BACKOFF_MS * 2.0.pow(attempt)
+    return if (exponentialMs >= MAX_BACKOFF_MS) MAX_BACKOFF_MS else exponentialMs.toLong()
 }
 
 private fun buildWebSocketUrl(url: NotificationUrl): String {

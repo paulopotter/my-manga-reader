@@ -199,4 +199,19 @@ class NtfyPluginTest {
 
             assertEquals(ConnectionState.DISCONNECTED, plugin.connectionState.value)
         }
+
+    @Test
+    fun `o backoff sobe 1s 2s 4s e trava no teto de 30s`() {
+        assertEquals(1_000L, ntfyReconnectDelayMs(0))
+        assertEquals(2_000L, ntfyReconnectDelayMs(1))
+        assertEquals(4_000L, ntfyReconnectDelayMs(2))
+        assertEquals(16_000L, ntfyReconnectDelayMs(4))
+        assertEquals(30_000L, ntfyReconnectDelayMs(5))
+    }
+
+    @Test
+    fun `o backoff nunca fica negativo nem abaixo do teto numa queda longa`() {
+        // Antes: a partir da tentativa 54 o Long estourava e o atraso virava negativo (sem pausa).
+        (5..2_000).forEach { assertEquals("tentativa $it", 30_000L, ntfyReconnectDelayMs(it)) }
+    }
 }
