@@ -10,6 +10,27 @@ Kotlin and RN bundle versions follow Semantic Versioning independently.
 
 ## [Unreleased]
 
+## [[2026.11.10.1519](https://github.com/paulopotter/my-manga-reader/releases/tag/2026.11.10.1519)] - 2026-11-10
+
+O cabeçalho do leitor agora respeita o entalhe da tela e não fica mais escondido pela câmera quando o modo imersivo está ativado. / The reader header now respects the screen notch and is no longer hidden behind the camera when immersive mode is turned on.
+
+
+### **Backend** - `1.10.0`
+
+**[pt-BR]**
+- Sem alterações nesta versão
+
+**[en]**
+- No changes in this version
+
+### **Frontend** - `1.11.1`
+
+**[pt-BR]**
+- O cabeçalho do leitor não fica mais escondido atrás da câmera ou do entalhe da tela quando o modo imersivo está ativado.
+
+**[en]**
+- The reader header no longer hides behind the camera or screen notch when immersive mode is enabled.
+
 ## [[2026.11.01.1721](https://github.com/paulopotter/my-kavita-app-reader/releases/tag/2026.11.01.1721)] - 2026-11-01
 
 Agora ficou mais fácil navegar por capítulos longos, o leitor exibe o progresso correto de capítulos e você pode esconder obras da tela inicial. / Now it is easier to navigate through long chapters, the reader displays the correct chapter progress, and you can hide titles from the home screen.
