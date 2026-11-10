@@ -2,6 +2,7 @@ export * from './actions';
 export * from './adult-filter';
 export * from './chapters';
 export * from './date';
+export * from './home-settings';
 export * from './metadata-sources';
 export * from './methods';
 export * from './navigation';

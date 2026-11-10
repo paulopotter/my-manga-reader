@@ -25,6 +25,15 @@ export interface Strings {
   configMenuReading: string;
   configMenuSerials: string;
   configMenuNotifications: string;
+  configMenuHome: string;
+  configHomeNewTitle: string;
+  configHomeNewWindow: string;
+  configHomeWindowDays: string; // "{0}" = days
+  configHomeNewHideFollowedReading: string;
+  configHomeUpdatedTitle: string;
+  configHomeUpdatedHideFullyRead: string;
+  configHomeFollowedTitle: string;
+  configHomeFollowedOnlyNewAtEnd: string;
   configMenuTheme: string;
   configMenuStartScreen: string;
   configMenuAdult: string;
@@ -76,6 +85,10 @@ export interface Strings {
   configMetadataFieldStatus: string;
   configMetadataFieldAlternativeTitles: string;
   configChapterSortGroupTitle: string;
+  configChapterDateGroupTitle: string;
+  configChapterDateRowLabel: string;
+  configChapterDateFollowLanguage: string;
+  configChapterDateRelative: string;
 
   // ── Server form ─────────────────────────────────────────────────────────
   serverFormUrlLabel: string;
@@ -170,9 +183,11 @@ export interface Strings {
   dashboardStatInProgress: string;
   dashboardError: string;
   dashboardRetry: string;
-  dashboardHideTitle: string; // "{0}" = series name — asks to hide it from "continue reading"
-  dashboardHideConfirm: string;
-  dashboardHideCancel: string;
+  dashboardMenuGoToSeries: string;
+  dashboardMenuHide: string;
+  dashboardMenuHideHint: string; // what hiding does — shown under the series name in the long-press menu
+  dashboardMenuCancel: string;
+  dashboardHideConfirmTitle: string; // "{0}" = series name — last ask before hiding it from the rails
   bookReaderLoading: string;
   bookReaderError: string;
   bookReaderRetry: string;
@@ -350,7 +365,7 @@ export interface Strings {
   readerNextChapterLabel: string;
   readerNoNextChapter: string;
   readerNoPrevChapter: string;
-  // "Cap. {0} de {1}" — position of the open chapter in the series / chapters in the series, shown
+  // "Cap. {0}/{1}" — position of the open chapter in the series / chapters in the series, shown
   // in the top bar.
   readerChapterIndicator: string;
   readerChapterPickerButtonLabel: string;
@@ -491,6 +506,7 @@ export interface Strings {
   notificationsHistoryDetailTitle: string;
   notificationsHistoryDetailChaptersTitle: string; // heading over the group's chapter list
   notificationsHistoryDetailGoToSeries: string;
+  notificationsHistoryDetailMarkRead: string;
   notificationsHistoryDetailMarkUnread: string;
   notificationsHistoryDetailDelete: string;
   notificationsHistoryDetailClose: string;
@@ -519,6 +535,15 @@ const ptBR: Strings = {
   configMenuReading: 'Preferências de leitura',
   configMenuSerials: 'Página do mangá',
   configMenuNotifications: 'Notificações',
+  configMenuHome: 'Trilhos da Home',
+  configHomeNewTitle: 'Novas na biblioteca',
+  configHomeNewWindow: 'Mostrar as dos últimos',
+  configHomeWindowDays: '{0} dias',
+  configHomeNewHideFollowedReading: 'Esconder as que já sigo ou estou lendo',
+  configHomeUpdatedTitle: 'Atualizadas recentemente',
+  configHomeUpdatedHideFullyRead: 'Esconder as que já li até o fim',
+  configHomeFollowedTitle: 'Obras seguidas atualizadas',
+  configHomeFollowedOnlyNewAtEnd: 'Só capítulo novo no final da obra',
   configMenuTheme: 'Tema',
   configMenuAdult: 'Conteúdo sensível',
   adultReveal: 'Exibir conteúdo filtrado',
@@ -563,6 +588,10 @@ const ptBR: Strings = {
   configMetadataFieldStatus: 'Status',
   configMetadataFieldAlternativeTitles: 'Outros títulos',
   configChapterSortGroupTitle: 'Ordenação de capítulos',
+  configChapterDateGroupTitle: 'Data dos capítulos',
+  configChapterDateRowLabel: 'Formato da data',
+  configChapterDateFollowLanguage: 'Seguir o idioma',
+  configChapterDateRelative: 'Relativo',
 
   serverFormUrlLabel: 'URL do servidor',
   serverFormUrlPlaceholder: 'http://192.168.1.100:5000',
@@ -647,9 +676,11 @@ const ptBR: Strings = {
   dashboardStatInProgress: 'Em andamento',
   dashboardError: 'Não foi possível carregar a Home',
   dashboardRetry: 'Tentar novamente',
-  dashboardHideTitle: 'Esconder “{0}” de Continuar lendo? Ela volta quando você ler de novo.',
-  dashboardHideConfirm: 'Esconder',
-  dashboardHideCancel: 'Cancelar',
+  dashboardMenuGoToSeries: 'Ir para a obra',
+  dashboardMenuHide: 'Esconder',
+  dashboardMenuHideHint: 'Se esconder, ela volta quando você ler de novo.',
+  dashboardMenuCancel: 'Cancelar',
+  dashboardHideConfirmTitle: 'Esconder “{0}”? Ela volta quando você ler de novo.',
   bookReaderLoading: 'Carregando capítulo…',
   bookReaderError: 'Não foi possível abrir este capítulo',
   bookReaderRetry: 'Tentar novamente',
@@ -806,7 +837,7 @@ const ptBR: Strings = {
   readerNextChapterLabel: 'Próximo:',
   readerNoNextChapter: 'Não há próximo capítulo',
   readerNoPrevChapter: 'Não há capítulo anterior',
-  readerChapterIndicator: 'Cap. {0} de {1}',
+  readerChapterIndicator: 'Cap. {0}/{1}',
   readerChapterPickerButtonLabel: 'Selecionar capítulo',
   readerChapterPickerTitle: 'Capítulos',
   readerSettingsButtonLabel: 'Ajustes de leitura',
@@ -930,6 +961,7 @@ const ptBR: Strings = {
   notificationsHistoryDetailTitle: 'Detalhes da notificação',
   notificationsHistoryDetailChaptersTitle: 'Capítulos incluídos',
   notificationsHistoryDetailGoToSeries: 'Ir para a série',
+  notificationsHistoryDetailMarkRead: 'Marcar como lido',
   notificationsHistoryDetailMarkUnread: 'Marcar como não lido',
   notificationsHistoryDetailDelete: 'Excluir',
   notificationsHistoryDetailClose: 'Fechar',
@@ -958,6 +990,15 @@ const en: Strings = {
   configMenuReading: 'Reading preferences',
   configMenuSerials: 'Manga page',
   configMenuNotifications: 'Notifications',
+  configMenuHome: 'Home rails',
+  configHomeNewTitle: 'New in library',
+  configHomeNewWindow: 'Show the ones from the last',
+  configHomeWindowDays: '{0} days',
+  configHomeNewHideFollowedReading: 'Hide the ones I follow or am reading',
+  configHomeUpdatedTitle: 'Recently updated',
+  configHomeUpdatedHideFullyRead: 'Hide the ones I have read to the end',
+  configHomeFollowedTitle: 'Followed series updated',
+  configHomeFollowedOnlyNewAtEnd: 'Only a new chapter at the end of the series',
   configMenuTheme: 'Theme',
   configMenuAdult: 'Sensitive content',
   adultReveal: 'Show filtered content',
@@ -1002,6 +1043,10 @@ const en: Strings = {
   configMetadataFieldStatus: 'Status',
   configMetadataFieldAlternativeTitles: 'Other titles',
   configChapterSortGroupTitle: 'Chapter sort order',
+  configChapterDateGroupTitle: 'Chapter date',
+  configChapterDateRowLabel: 'Date format',
+  configChapterDateFollowLanguage: 'Follow the language',
+  configChapterDateRelative: 'Relative',
 
   serverFormUrlLabel: 'Server URL',
   serverFormUrlPlaceholder: 'http://192.168.1.100:5000',
@@ -1086,9 +1131,11 @@ const en: Strings = {
   dashboardStatInProgress: 'In progress',
   dashboardError: 'Could not load Home',
   dashboardRetry: 'Try again',
-  dashboardHideTitle: 'Hide “{0}” from Continue reading? It comes back when you read it again.',
-  dashboardHideConfirm: 'Hide',
-  dashboardHideCancel: 'Cancel',
+  dashboardMenuGoToSeries: 'Go to series',
+  dashboardMenuHide: 'Hide',
+  dashboardMenuHideHint: 'If you hide it, it comes back when you read it again.',
+  dashboardMenuCancel: 'Cancel',
+  dashboardHideConfirmTitle: 'Hide “{0}”? It comes back when you read it again.',
   bookReaderLoading: 'Loading chapter…',
   bookReaderError: 'Could not open this chapter',
   bookReaderRetry: 'Try again',
@@ -1245,7 +1292,7 @@ const en: Strings = {
   readerNextChapterLabel: 'Next:',
   readerNoNextChapter: 'No next chapter',
   readerNoPrevChapter: 'No previous chapter',
-  readerChapterIndicator: 'Ch. {0} of {1}',
+  readerChapterIndicator: 'Ch. {0}/{1}',
   readerChapterPickerButtonLabel: 'Select chapter',
   readerChapterPickerTitle: 'Chapters',
   readerSettingsButtonLabel: 'Reading settings',
@@ -1369,6 +1416,7 @@ const en: Strings = {
   notificationsHistoryDetailTitle: 'Notification details',
   notificationsHistoryDetailChaptersTitle: 'Included chapters',
   notificationsHistoryDetailGoToSeries: 'Go to series',
+  notificationsHistoryDetailMarkRead: 'Mark as read',
   notificationsHistoryDetailMarkUnread: 'Mark as unread',
   notificationsHistoryDetailDelete: 'Delete',
   notificationsHistoryDetailClose: 'Close',

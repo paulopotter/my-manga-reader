@@ -1,5 +1,6 @@
 import type { Strings } from '../../shared/i18n';
 import { DateTool } from '../../shared/tools/date';
+import { DEFAULT_HOME_SETTINGS, type HomeSettings } from '../../shared/tools/home-settings';
 import { SerieTool, type Serie } from '../../shared/tools/serials';
 import type { DashboardData, DashboardItem, DashboardStats, LocalProgress } from './dashboard.types';
 
@@ -34,6 +35,32 @@ function createdOf(serie: Serie): number | undefined {
 
 function readDateOf(serie: Serie): number | undefined {
   return validEpoch(serie.lastUpdatesUTC?.readDate);
+}
+
+function isFullyRead(serie: Serie): boolean {
+  const pages = serie.pages;
+  return pages != null && pages.total > 0 && pages.read >= pages.total;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// The chapter's number as a plain comparable value; undefined for a special or one with no number.
+function numberOf(chapter: Serie['chapters'][number]): number | undefined {
+  if (chapter.isSpecial) {return undefined;}
+  return chapter.decimalNumber ?? chapter.number;
+}
+
+// Whether the digest has an unread chapter numbered beyond the highest one already read — i.e. a
+// real new chapter at the end of the series, not an old one that turned up in the middle. A series
+// with nothing read yet (or whose numbers cannot be compared) counts as yes: there is no "last read"
+// to be behind.
+function hasNewChapterAtEnd(digest: Serie): boolean {
+  const readNumbers = digest.chapters.filter(c => c.readStatus === 'READ').map(numberOf).filter((n): n is number => n != null);
+  if (readNumbers.length === 0) {return true;}
+  const highestRead = Math.max(...readNumbers);
+  const unread = digest.chapters.filter(c => c.readStatus !== 'READ').map(numberOf);
+  // An unread chapter we cannot number is given the benefit of the doubt.
+  return unread.some(n => n == null || n > highestRead);
 }
 
 function isInProgress(serie: Serie): boolean {
@@ -192,12 +219,15 @@ export const DashboardTool = {
     digests,
     exclude,
     limit,
+    onlyNewAtEnd = DEFAULT_HOME_SETTINGS.followedOnlyNewAtEnd,
     t,
   }: {
     candidates: Serie[];
     digests: Map<string, Serie | null>;
     exclude: Set<string>;
     limit: number;
+    // Leave out a series whose only unread chapters are older than the last one read.
+    onlyNewAtEnd?: boolean;
     t: Strings;
   }): DashboardItem[] {
     const items: DashboardItem[] = [];
@@ -210,6 +240,7 @@ export const DashboardTool = {
       }
       const resume = digest.resumePoint;
       if (!resume) {continue;}
+      if (onlyNewAtEnd && !hasNewChapterAtEnd(digest)) {continue;}
       const chapter = digest.chapters.find(c => c.id === resume.stoppedAtChapterId);
       const number = chapter?.isSpecial ? chapter.specialLabel : (chapter?.decimalNumber ?? chapter?.number);
       items.push({
@@ -233,9 +264,20 @@ export const DashboardTool = {
     return true;
   },
 
-  recentlyUpdated({ series, limit, t }: { series: Serie[]; limit: number; t: Strings }): DashboardItem[] {
+  // `hideFullyRead`: a series whose every page is read has nothing to offer, so it is left out.
+  recentlyUpdated({
+    series,
+    limit,
+    hideFullyRead = DEFAULT_HOME_SETTINGS.recentlyUpdatedHideFullyRead,
+    t,
+  }: {
+    series: Serie[];
+    limit: number;
+    hideFullyRead?: boolean;
+    t: Strings;
+  }): DashboardItem[] {
     return series
-      .filter(s => chapterAddedOf(s) != null)
+      .filter(s => chapterAddedOf(s) != null && !(hideFullyRead && isFullyRead(s)))
       .sort((a, b) => chapterAddedOf(b)! - chapterAddedOf(a)!)
       .slice(0, limit)
       .map(s => ({ ...baseItem({ serie: s, t }), caption: updatedCaption({ serie: s, t }) }));
@@ -302,10 +344,27 @@ export const DashboardTool = {
   },
 
   // Series that appeared in the library most recently (not "got a chapter" — that is
-  // recentlyUpdated).
-  recentlyAdded({ series, limit, t }: { series: Serie[]; limit: number; t: Strings }): DashboardItem[] {
+  // recentlyUpdated), within the last `settings.newInLibraryWindowDays` days. Optionally leaves out the
+  // ones that are followed or being read: they are already somewhere on the Home.
+  recentlyAdded({
+    series,
+    followedIds = new Set<string>(),
+    limit,
+    settings = DEFAULT_HOME_SETTINGS,
+    now = Date.now(),
+    t,
+  }: {
+    series: Serie[];
+    followedIds?: Set<string>;
+    limit: number;
+    settings?: HomeSettings;
+    now?: number;
+    t: Strings;
+  }): DashboardItem[] {
+    const since = now - settings.newInLibraryWindowDays * DAY_MS;
     return series
-      .filter(s => createdOf(s) != null)
+      .filter(s => createdOf(s) != null && createdOf(s)! >= since)
+      .filter(s => !(settings.newInLibraryHideFollowedAndReading && (followedIds.has(s.id) || isInProgress(s))))
       .sort((a, b) => createdOf(b)! - createdOf(a)!)
       .slice(0, limit)
       .map(s => ({ ...baseItem({ serie: s, t }), caption: DateTool.format.to.relative(createdOf(s)!, t) }));
@@ -330,6 +389,8 @@ export const DashboardTool = {
     followedDigests,
     localProgress,
     hidden,
+    settings = DEFAULT_HOME_SETTINGS,
+    now,
     t,
   }: {
     series: Serie[];
@@ -341,6 +402,9 @@ export const DashboardTool = {
     localProgress: Map<string, LocalProgress>;
     // Series the user hid from "continue reading", by id → last read date when hidden.
     hidden?: ReadonlyMap<string, number>;
+    // What the user chose about which series the rails show.
+    settings?: HomeSettings;
+    now?: number;
     t: Strings;
   }): DashboardData {
     const continueReading = continueSeries
@@ -366,14 +430,20 @@ export const DashboardTool = {
       digests: followedDigests,
       exclude: new Set([...shown, ...owners]),
       limit: DASHBOARD_LIMITS.followedUpdated,
+      onlyNewAtEnd: settings.followedOnlyNewAtEnd,
       t,
     });
     return {
       continueReading,
       followedUpdated,
       unfinished: DashboardTool.unfinished({ series, exclude: shown, limit: DASHBOARD_LIMITS.unfinished, hidden, t }),
-      recentlyUpdated: DashboardTool.recentlyUpdated({ series, limit: DASHBOARD_LIMITS.recentlyUpdated, t }),
-      recentlyAdded: DashboardTool.recentlyAdded({ series, limit: DASHBOARD_LIMITS.recentlyAdded, t }),
+      recentlyUpdated: DashboardTool.recentlyUpdated({
+        series,
+        limit: DASHBOARD_LIMITS.recentlyUpdated,
+        hideFullyRead: settings.recentlyUpdatedHideFullyRead,
+        t,
+      }),
+      recentlyAdded: DashboardTool.recentlyAdded({ series, followedIds, limit: DASHBOARD_LIMITS.recentlyAdded, settings, now, t }),
       stats: DashboardTool.stats({ series, followedIds }),
     };
   },

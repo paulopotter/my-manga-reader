@@ -27,6 +27,7 @@ jest.mock('../../shared/managers/preferences', () => ({
 jest.mock('./server', () => ({ ServerScreen: (p: { onBack?: () => void }) => stub('server')(p) }));
 jest.mock('./reader', () => ({ ReaderPrefsScreen: (p: { onBack?: () => void }) => stub('reader')(p) }));
 jest.mock('./serials', () => ({ SerialsSortScreen: (p: { onBack?: () => void }) => stub('serials')(p) }));
+jest.mock('./home', () => ({ HomeSettingsScreen: (p: { onBack?: () => void }) => stub('home')(p) }));
 jest.mock('./adult', () => ({ AdultFilterScreen: (p: { onBack?: () => void }) => stub('adult')(p) }));
 jest.mock('./debug', () => ({ DebugScreen: (p: { onBack?: () => void }) => stub('debug')(p) }));
 
@@ -41,7 +42,7 @@ jest.mock('../../shared/components/app-versions', () => ({
 import { getStrings } from '../../shared/i18n/strings';
 import { ThemeProvider } from '../../shared/context';
 import { useConfigLanguage, useConfigMenu, useConfigStartScreen } from './config.hooks';
-import { ConfigScreen } from './config.screen';
+import { CONFIG_RESET_DELAY_MS, ConfigScreen } from './config.screen';
 
 const t = getStrings('en');
 
@@ -106,6 +107,12 @@ describe('ConfigScreen router', () => {
     expect(queryByText(t.configTitle)).toBeTruthy(); // back on the menu
   });
 
+  it('opens the Home settings from its menu row', () => {
+    const { getByText, getByTestId } = render(<ConfigScreen />);
+    fireEvent.press(getByText(t.configMenuHome));
+    expect(getByTestId('stub-home')).toBeTruthy();
+  });
+
   it('opens the adult-content filter from its menu row', () => {
     const { getByText, getByTestId } = render(<ConfigScreen />);
     fireEvent.press(getByText(t.configMenuAdult));
@@ -137,6 +144,50 @@ describe('ConfigScreen router', () => {
     });
     expect(queryByText(t.configTitle)).toBeTruthy();
     spy.mockRestore();
+  });
+});
+
+describe('ConfigScreen reset after leaving', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  const openReading = (focused: boolean) => {
+    const utils = render(<ConfigScreen focused={focused} />);
+    fireEvent.press(utils.getByText(t.configMenuReading));
+    return utils;
+  };
+
+  it('returns to the menu once the tab stays off screen for the delay', () => {
+    const { rerender, getByTestId, queryByText } = openReading(true);
+    rerender(<ConfigScreen focused={false} />);
+    act(() => {
+      jest.advanceTimersByTime(CONFIG_RESET_DELAY_MS);
+    });
+    rerender(<ConfigScreen focused />);
+    expect(queryByText(t.configTitle)).toBeTruthy();
+    expect(() => getByTestId('stub-reader')).toThrow();
+  });
+
+  it('keeps the sub-level when it comes back before the delay', () => {
+    const { rerender, getByTestId } = openReading(true);
+    rerender(<ConfigScreen focused={false} />);
+    act(() => {
+      jest.advanceTimersByTime(CONFIG_RESET_DELAY_MS - 1);
+    });
+    rerender(<ConfigScreen focused />);
+    act(() => {
+      jest.advanceTimersByTime(CONFIG_RESET_DELAY_MS * 2);
+    });
+    expect(getByTestId('stub-reader')).toBeTruthy();
+  });
+
+  it('stays on the menu without arming anything when already there', () => {
+    const { rerender, queryByText } = render(<ConfigScreen focused />);
+    rerender(<ConfigScreen focused={false} />);
+    act(() => {
+      jest.advanceTimersByTime(CONFIG_RESET_DELAY_MS);
+    });
+    expect(queryByText(t.configTitle)).toBeTruthy();
   });
 });
 

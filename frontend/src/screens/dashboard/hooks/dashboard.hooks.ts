@@ -8,6 +8,7 @@ import { FollowedSeriesService } from '../../../shared/services/followed-series'
 import { HiddenContinueManager, ReadingProgressManager } from '../../../shared/managers/store';
 import { SerialService, SerialsService } from '../../../shared/services/serials';
 import { ConcurrencyTool } from '../../../shared/tools/concurrency';
+import { DEFAULT_HOME_SETTINGS, HomeSettingsTool, type HomeSettings } from '../../../shared/tools/home-settings';
 import { SeriesTool, SerieEvents, SerieTool, type Serie } from '../../../shared/tools/serials';
 import { DASHBOARD_LIMITS, DashboardTool } from '../dashboard.tool';
 import type { DashboardData, DashboardItem, DashboardStatus, LocalProgress } from '../dashboard.types';
@@ -55,6 +56,8 @@ export function useDashboard() {
   // The tiles of a rail are still being fetched and none is on screen yet.
   const [continueLoading, setContinueLoading] = useState(false);
   const [followedLoading, setFollowedLoading] = useState(false);
+  // What the user chose about which series the rails show (Settings → Home).
+  const [settings, setSettings] = useState<HomeSettings>(DEFAULT_HOME_SETTINGS);
   // The series the user hid from "continue reading", by id → its last read date when hidden.
   const [hidden, setHidden] = useState<Map<string, number>>(new Map());
   // Where the reader got to in each tile's chapter, as the device saved it: the server's count lags it.
@@ -88,10 +91,11 @@ export function useDashboard() {
     const request = ++requestRef.current;
     const startedAt = Date.now();
     try {
-      const [serialsDigest, followedIds, hiddenNow] = await Promise.all([
+      const [serialsDigest, followedIds, hiddenNow, settingsNow] = await Promise.all([
         SerialsService.get({ force }),
         FollowedSeriesService.ids.get().catch(() => [] as string[]),
         HiddenContinueManager.get().catch(() => new Map<string, number>()),
+        HomeSettingsTool.get(),
       ]);
       if (!serialsDigest.isSuccess) {
         throw new Error(serialsDigest.error.message ?? serialsDigest.error.code ?? 'serials digest failed');
@@ -102,6 +106,7 @@ export function useDashboard() {
 
       if (request !== requestRef.current) {return;}
       setHidden(previous => (sameHidden({ previous, next: hiddenNow }) ? previous : hiddenNow));
+      setSettings(previous => (HomeSettingsTool.same({ a: previous, b: settingsNow }) ? previous : settingsNow));
       const candidates = DashboardTool.continueCandidates({ series, limit: DASHBOARD_LIMITS.continueReading, hidden: hiddenNow });
       const continueIds = DashboardTool.continueIds({ candidates, limit: DASHBOARD_LIMITS.continueReading });
       const followedCandidates = DashboardTool.followedUpdatedCandidates({
@@ -208,6 +213,7 @@ export function useDashboard() {
       followedDigests: source.followedDigests,
       localProgress,
       hidden,
+      settings,
       t,
     });
     const mark = (items: DashboardItem[]): DashboardItem[] =>
@@ -220,7 +226,7 @@ export function useDashboard() {
       unfinished: mark(built.unfinished),
       recentlyAdded: mark(built.recentlyAdded),
     };
-  }, [source, visibleSeries, localProgress, hidden, t]);
+  }, [source, visibleSeries, localProgress, hidden, settings, t]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);

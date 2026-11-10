@@ -13,7 +13,7 @@ export interface RailProps {
   title: string;
   items: DashboardItem[];
   onPressItem: (item: DashboardItem) => void;
-  // Holding a 'wide' tile. Only that variant has it: the cover tiles do nothing when held.
+  // Holding a tile (either variant). Absent = holding does nothing.
   onLongPressItem?: (item: DashboardItem) => void;
   // The tiles are still being fetched: show placeholders instead of "nothing here".
   loading?: boolean;
@@ -74,6 +74,7 @@ export function Rail({ title, items, onPressItem, onLongPressItem, loading = fal
                 blurred={item.blurred}
                 badge={item.badge}
                 onPress={() => onPressItem(item)}
+                onLongPress={onLongPressItem ? () => onLongPressItem(item) : undefined}
               />
             )
           }

@@ -16,6 +16,8 @@ export interface RailCardProps {
   // "Novel" / "PDF": drawn over a corner of the cover.
   badge?: string;
   onPress: (id: string) => void;
+  // Holding the tile. Absent = holding does nothing.
+  onLongPress?: (id: string) => void;
 }
 
 export const RailCard = React.memo(function RailCard({
@@ -27,10 +29,11 @@ export const RailCard = React.memo(function RailCard({
   blurred,
   badge,
   onPress,
+  onLongPress,
 }: RailCardProps) {
   const styles = useStyles(railCardStyles);
   return (
-    <TouchableOpacity style={styles.card} onPress={() => onPress(id)} activeOpacity={0.8}>
+    <TouchableOpacity style={styles.card} onPress={() => onPress(id)} onLongPress={onLongPress ? () => onLongPress(id) : undefined} activeOpacity={0.8}>
       <View>
         <Image source={{ uri: coverUrl }} style={styles.cover} resizeMode="cover" blurRadius={blurred ? blur.cover : 0} />
         {badge != null && (

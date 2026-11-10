@@ -38,6 +38,15 @@ jest.mock('../../../shared/managers/store', () => ({
   },
 }));
 
+const mockHomeSettingsGet = jest.fn();
+jest.mock('../../../shared/tools/home-settings', () => ({
+  ...jest.requireActual('../../../shared/tools/home-settings'),
+  HomeSettingsTool: {
+    ...jest.requireActual('../../../shared/tools/home-settings').HomeSettingsTool,
+    get: (...a: unknown[]) => mockHomeSettingsGet(...a),
+  },
+}));
+
 const mockFollowedIds = jest.fn();
 jest.mock('../../../shared/services/followed-series', () => ({
   FollowedSeriesService: { ids: { get: (...a: unknown[]) => mockFollowedIds(...a) } },
@@ -76,6 +85,7 @@ beforeEach(() => {
   mockLocalProgress.mockResolvedValue(null);
   mockHiddenGet.mockResolvedValue(new Map());
   mockHiddenHide.mockResolvedValue(undefined);
+  mockHomeSettingsGet.mockResolvedValue(jest.requireActual('../../../shared/tools/home-settings').DEFAULT_HOME_SETTINGS);
   mockAdult.mockImplementation((items: unknown[]) => items);
   mockSerialsGet.mockResolvedValue(serialsDigest());
   mockFollowedIds.mockResolvedValue(['2']);

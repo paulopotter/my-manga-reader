@@ -15,6 +15,9 @@ jest.mock('./hooks', () => ({ useDashboard: () => mockState }));
 import { Routes } from '../../navigation/routes';
 import { DashboardScreen } from './dashboard.screen';
 import { ThemeProvider } from '../../shared/context';
+import { getStrings } from '../../shared/i18n/strings';
+
+const t = getStrings('en');
 
 jest.mock('../../shared/managers/preferences', () => ({
   PreferencesManager: { get: jest.fn().mockResolvedValue(null), put: jest.fn().mockResolvedValue({}) },
@@ -56,35 +59,69 @@ describe('DashboardScreen', () => {
     expect(mockNavigate).toHaveBeenCalledWith(Routes.SERIES_DETAIL, { seriesId: 's2', origin: 'DASHBOARD' });
   });
 
-  describe('hiding a series from "continue reading"', () => {
-    it('asks first, naming the series, when a continue-reading tile is held', async () => {
-      const { findByText, getByText, queryByText } = renderScreen();
-      expect(queryByText(/Hide “Reading”/)).toBeNull();
+  describe('holding a tile of "continue reading" or "not finished yet"', () => {
+    it('opens a menu naming the series, with go-to-series and hide', async () => {
+      const { findByText, getByText, getAllByText, queryByText } = renderScreen();
+      expect(queryByText(t.dashboardMenuGoToSeries)).toBeNull();
       fireEvent(await findByText('Reading'), 'longPress');
-      expect(getByText(/Hide “Reading” from Continue reading\?/)).toBeTruthy();
+      // The tile and the menu title.
+      expect(getAllByText('Reading')).toHaveLength(2);
+      expect(getByText(t.dashboardMenuGoToSeries)).toBeTruthy();
+      expect(getByText(t.dashboardMenuHide)).toBeTruthy();
       expect(mockHide).not.toHaveBeenCalled();
     });
 
-    it('hides the series on confirm, and does not open it', async () => {
+    it('asks for confirmation, then hides the series without opening it', async () => {
       const { findByText, getByText } = renderScreen();
       fireEvent(await findByText('Reading'), 'longPress');
-      fireEvent.press(getByText('Hide'));
+      fireEvent.press(getByText(t.dashboardMenuHide));
+      // Not hidden yet: the menu gave way to the confirmation.
+      expect(mockHide).not.toHaveBeenCalled();
+      expect(getByText(t.dashboardHideConfirmTitle.replace('{0}', 'Reading'))).toBeTruthy();
+      fireEvent.press(getByText(t.dashboardMenuHide));
       expect(mockHide).toHaveBeenCalledWith({ seriesId: 's1' });
       expect(mockNavigate).not.toHaveBeenCalled();
     });
 
-    it('keeps the series when the ask is cancelled', async () => {
+    it('keeps the series when the confirmation is cancelled', async () => {
       const { findByText, getByText, queryByText } = renderScreen();
       fireEvent(await findByText('Reading'), 'longPress');
-      fireEvent.press(getByText('Cancel'));
+      fireEvent.press(getByText(t.dashboardMenuHide));
+      fireEvent.press(getByText(t.dashboardMenuCancel));
       expect(mockHide).not.toHaveBeenCalled();
-      expect(queryByText(/Hide “Reading”/)).toBeNull();
+      expect(queryByText(t.dashboardHideConfirmTitle.replace('{0}', 'Reading'))).toBeNull();
     });
 
-    it('does nothing when another rail tile is held', async () => {
+    it('goes to the series page (not the reader) from the menu', async () => {
+      const { findByText, getByText } = renderScreen();
+      fireEvent(await findByText('Reading'), 'longPress');
+      fireEvent.press(getByText(t.dashboardMenuGoToSeries));
+      expect(mockNavigate).toHaveBeenCalledWith(Routes.SERIES_DETAIL, { seriesId: 's1', origin: 'DASHBOARD' });
+      expect(mockHide).not.toHaveBeenCalled();
+    });
+
+    it('closes the menu without doing anything when cancelled', async () => {
+      const { findByText, getByText, queryByText } = renderScreen();
+      fireEvent(await findByText('Reading'), 'longPress');
+      fireEvent.press(getByText(t.dashboardMenuCancel));
+      expect(mockHide).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalled();
+      expect(queryByText(t.dashboardMenuHide)).toBeNull();
+    });
+
+    it('offers the same menu on a "not finished yet" tile', async () => {
+      mockState = { ...mockState, data: { ...data, unfinished: [{ seriesId: 'u', name: 'Unfinished', coverUrl: 'c' }] } };
+      const { findByText, getByText } = renderScreen();
+      fireEvent(await findByText('Unfinished'), 'longPress');
+      fireEvent.press(getByText(t.dashboardMenuHide));
+      fireEvent.press(getByText(t.dashboardMenuHide)); // confirm
+      expect(mockHide).toHaveBeenCalledWith({ seriesId: 'u' });
+    });
+
+    it('does nothing when a tile of another rail is held', async () => {
       const { findByText, queryByText } = renderScreen();
       fireEvent(await findByText('Fresh'), 'longPress');
-      expect(queryByText(/from Continue reading/)).toBeNull();
+      expect(queryByText(t.dashboardMenuHide)).toBeNull();
     });
   });
 

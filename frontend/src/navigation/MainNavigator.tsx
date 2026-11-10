@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { Bell, House, Library, Search, Settings, Star } from 'lucide-react-native';
 import { Routes } from './routes';
 import { DashboardScreen } from '../screens/dashboard';
@@ -53,8 +53,11 @@ function ConfigTab({
   onRegisterBackHandler: (fn: (() => boolean) | null) => void;
   onServerCleared: () => void;
 }) {
+  // Also false while a screen opened above the tabs (reader, series) covers this one.
+  const focused = useIsFocused();
   return (
     <ConfigScreen
+      focused={focused}
       onRegisterBackHandler={onRegisterBackHandler}
       onServerCleared={onServerCleared}
     />

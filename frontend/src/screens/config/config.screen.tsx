@@ -17,14 +17,28 @@ import { DebugScreen } from './debug';
 import { NotificationsScreen } from './notifications';
 import { ReaderPrefsScreen } from './reader';
 import { SerialsSortScreen } from './serials';
+import { HomeSettingsScreen } from './home';
 import { ServerScreen } from './server';
+
+// How long Config may stay off screen before it forgets its sub-level and reopens on the menu.
+export const CONFIG_RESET_DELAY_MS = 10_000;
 
 // Thin router: the Config menu + which sub-screen is open. All the real work is in each sub-screen
 // (server/reader/serie/debug), each its own folder on the current convention. 'setup' is not
 // routed here — see config.types.
-export function ConfigScreen({ onRegisterBackHandler, onServerCleared }: ConfigScreenProps) {
+export function ConfigScreen({ onRegisterBackHandler, onServerCleared, focused = true }: ConfigScreenProps) {
   const [screen, setScreen] = useState<ConfigSubScreen>('menu');
   const goBack = () => setScreen('menu');
+
+  // Off screen for a while → back to the menu. Returning sooner cancels the countdown, so a quick
+  // glance at another tab keeps the sub-level.
+  useEffect(() => {
+    if (focused || screen === 'menu') {
+      return;
+    }
+    const timer = setTimeout(() => setScreen('menu'), CONFIG_RESET_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [focused, screen]);
 
   useEffect(() => {
     if (screen === 'menu') {
@@ -50,6 +64,8 @@ export function ConfigScreen({ onRegisterBackHandler, onServerCleared }: ConfigS
       return <ReaderPrefsScreen onBack={goBack} />;
     case 'serials':
       return <SerialsSortScreen onBack={goBack} />;
+    case 'home':
+      return <HomeSettingsScreen onBack={goBack} />;
     case 'notifications':
       return <NotificationsScreen onBack={goBack} />;
     case 'adult':
@@ -113,6 +129,12 @@ function ConfigMenu({ onNavigate }: { onNavigate: (s: ConfigSubScreen) => void }
 
       <TouchableOpacity style={styles.menuRow} onPress={() => onNavigate('serials')}>
         <Text style={styles.menuRowLabel}>{t.configMenuSerials}</Text>
+        <ChevronRight size={icon.size[5]} color={colors.icon.secondary} />
+      </TouchableOpacity>
+      <View style={[styles.divider, styles.dividerInset]} />
+
+      <TouchableOpacity style={styles.menuRow} onPress={() => onNavigate('home')}>
+        <Text style={styles.menuRowLabel}>{t.configMenuHome}</Text>
         <ChevronRight size={icon.size[5]} color={colors.icon.secondary} />
       </TouchableOpacity>
       <View style={[styles.divider, styles.dividerInset]} />

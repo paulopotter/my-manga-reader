@@ -60,10 +60,13 @@ describe('Rail', () => {
     expect(getByTestId('rail-wide-card').props.onLongPress).toBeUndefined();
   });
 
-  it('gives the cover tiles no long press even when a handler is passed', () => {
-    const { getByText } = render(
-      <Rail title="Recent" items={[item]} onPressItem={jest.fn()} onLongPressItem={jest.fn()} />,
-    );
-    expect(getByText('One Piece')).toBeTruthy();
+  it('hands the held item back from a cover tile too, and does nothing without a handler', () => {
+    const onLongPressItem = jest.fn();
+    const { getByText, rerender } = render(<Rail title="Recent" items={[item]} onPressItem={jest.fn()} onLongPressItem={onLongPressItem} />);
+    fireEvent(getByText('One Piece'), 'longPress');
+    expect(onLongPressItem).toHaveBeenCalledWith(item);
+    rerender(<Rail title="Recent" items={[item]} onPressItem={jest.fn()} />);
+    fireEvent(getByText('One Piece'), 'longPress');
+    expect(onLongPressItem).toHaveBeenCalledTimes(1);
   });
 });

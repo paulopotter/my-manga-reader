@@ -212,6 +212,36 @@ describe('DashboardTool.followedUpdated', () => {
   });
 });
 
+describe('DashboardTool.followedUpdated — only a new chapter at the end', () => {
+  const candidate = serie({ id: 'a', lastUpdatesUTC: { chapterAdded: NOW - HOUR } });
+  const chapter = (id: string, number: number, readStatus: 'READ' | 'UNREAD') => ({ id, number, readStatus }) as Serie['chapters'][number];
+  const digestWith = (chapters: Serie['chapters']) =>
+    serie({ id: 'a', resumePoint: { stoppedAtChapterId: chapters.find(c => c.readStatus !== 'READ')!.id, stoppedAtChapterIndex: 0, status: 'UNREAD' }, chapters });
+  const run = (digest: Serie, onlyNewAtEnd?: boolean) =>
+    DashboardTool.followedUpdated({ candidates: [candidate], digests: new Map([['a', digest]]), exclude: new Set(), limit: 5, onlyNewAtEnd, t });
+
+  it('drops a series whose only unread chapter is older than the last one read', () => {
+    const digest = digestWith([chapter('c25', 25, 'UNREAD'), chapter('c40', 40, 'READ')]);
+    expect(run(digest)).toEqual([]);
+  });
+
+  it('keeps a series with an unread chapter beyond the last one read, even with an old gap too', () => {
+    const digest = digestWith([chapter('c25', 25, 'UNREAD'), chapter('c40', 40, 'READ'), chapter('c41', 41, 'UNREAD')]);
+    expect(run(digest).map(i => i.seriesId)).toEqual(['a']);
+  });
+
+  it('keeps a series with nothing read yet, and one whose unread chapter has no number', () => {
+    expect(run(digestWith([chapter('c1', 1, 'UNREAD')])).map(i => i.seriesId)).toEqual(['a']);
+    const special = { id: 'sp', isSpecial: true, specialLabel: 'Extra', readStatus: 'UNREAD' } as Serie['chapters'][number];
+    expect(run(digestWith([chapter('c40', 40, 'READ'), special])).map(i => i.seriesId)).toEqual(['a']);
+  });
+
+  it('shows the old-chapter series again when the setting is off', () => {
+    const digest = digestWith([chapter('c25', 25, 'UNREAD'), chapter('c40', 40, 'READ')]);
+    expect(run(digest, false).map(i => i.seriesId)).toEqual(['a']);
+  });
+});
+
 describe('DashboardTool.sameDigests', () => {
   const digest = (id: string, chapterId: string) =>
     serie({ id, resumePoint: { stoppedAtChapterId: chapterId, stoppedAtChapterIndex: 0, status: 'UNREAD' } });
@@ -235,6 +265,49 @@ describe('DashboardTool.recentlyUpdated', () => {
     ];
     expect(DashboardTool.recentlyUpdated({ series, limit: 5, t }).map(i => i.seriesId)).toEqual(['b', 'a']);
     expect(DashboardTool.recentlyUpdated({ series, limit: 1, t })).toHaveLength(1);
+  });
+});
+
+describe('DashboardTool.recentlyUpdated — fully read', () => {
+  const series = [
+    serie({ id: 'done', pages: { read: 10, total: 10 }, lastUpdatesUTC: { chapterAdded: NOW - HOUR } }),
+    serie({ id: 'open', pages: { read: 3, total: 10 }, lastUpdatesUTC: { chapterAdded: NOW - 2 * HOUR } }),
+    serie({ id: 'untouched', pages: { read: 0, total: 10 }, lastUpdatesUTC: { chapterAdded: NOW - 3 * HOUR } }),
+    serie({ id: 'nopages', lastUpdatesUTC: { chapterAdded: NOW - 4 * HOUR } }),
+  ];
+
+  it('leaves out a series whose every page is read', () => {
+    expect(DashboardTool.recentlyUpdated({ series, limit: 10, t }).map(i => i.seriesId)).toEqual(['open', 'untouched', 'nopages']);
+  });
+
+  it('keeps it when the setting is off', () => {
+    expect(DashboardTool.recentlyUpdated({ series, limit: 10, hideFullyRead: false, t }).map(i => i.seriesId)).toEqual(['done', 'open', 'untouched', 'nopages']);
+  });
+});
+
+describe('DashboardTool.recentlyAdded — window and what is already on the Home', () => {
+  const DAY = 24 * HOUR;
+  const series = [
+    serie({ id: 'fresh', lastUpdatesUTC: { created: NOW - DAY } }),
+    serie({ id: 'followed', lastUpdatesUTC: { created: NOW - 2 * DAY } }),
+    serie({ id: 'reading', pages: { read: 2, total: 10 }, lastUpdatesUTC: { created: NOW - 3 * DAY } }),
+    serie({ id: 'old', lastUpdatesUTC: { created: NOW - 10 * DAY } }),
+  ];
+  const settings = { newInLibraryWindowDays: 7, newInLibraryHideFollowedAndReading: true, recentlyUpdatedHideFullyRead: true, followedOnlyNewAtEnd: true };
+  const ids = (over: Partial<Parameters<typeof DashboardTool.recentlyAdded>[0]> = {}) =>
+    DashboardTool.recentlyAdded({ series, followedIds: new Set(['followed']), limit: 10, settings, now: NOW, t, ...over }).map(i => i.seriesId);
+
+  it('shows only series created inside the window, without the followed or in-progress ones', () => {
+    expect(ids()).toEqual(['fresh']);
+  });
+
+  it('keeps the followed and in-progress ones when that setting is off', () => {
+    expect(ids({ settings: { ...settings, newInLibraryHideFollowedAndReading: false } })).toEqual(['fresh', 'followed', 'reading']);
+  });
+
+  it('follows the window the user chose', () => {
+    expect(ids({ settings: { ...settings, newInLibraryHideFollowedAndReading: false, newInLibraryWindowDays: 30 } })).toEqual(['fresh', 'followed', 'reading', 'old']);
+    expect(ids({ settings: { ...settings, newInLibraryHideFollowedAndReading: false, newInLibraryWindowDays: 1 } })).toEqual(['fresh']);
   });
 });
 
